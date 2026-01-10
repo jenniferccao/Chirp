@@ -473,6 +473,9 @@ async function saveAudio() {
     // Convert buffer to blob
     const croppedBlob = await bufferToBlob(croppedBuffer);
     
+    // Get chirp name from input
+    const chirpName = document.getElementById('chirpName').value.trim() || `Chirp ${Date.now()}`;
+    
     // Convert to base64 and send to content script
     const reader = new FileReader();
     reader.readAsDataURL(croppedBlob);
@@ -483,13 +486,16 @@ async function saveAudio() {
       chrome.tabs.sendMessage(tab.id, {
         action: 'enablePlacement',
         audioData: base64Audio,
-        color: selectedColor
+        color: selectedColor,
+        name: chirpName
       });
     };
     
   } catch (error) {
     console.error('Error processing audio:', error);
     // Fallback to original audio
+    const chirpName = document.getElementById('chirpName').value.trim() || `Chirp ${Date.now()}`;
+    
     const reader = new FileReader();
     reader.readAsDataURL(currentAudioBlob);
     reader.onloadend = async () => {
@@ -499,7 +505,8 @@ async function saveAudio() {
       chrome.tabs.sendMessage(tab.id, {
         action: 'enablePlacement',
         audioData: base64Audio,
-        color: selectedColor
+        color: selectedColor,
+        name: chirpName
       });
     };
   }
@@ -657,6 +664,24 @@ function stopRecording() {
 async function processAudio(audioBlob) {
   currentAudioBlob = audioBlob;
   
+  // Get note count for default name
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const url = new URL(tab.url).hostname + new URL(tab.url).pathname;
+  
+  chrome.storage.local.get([url], (result) => {
+    const notes = result[url] || [];
+    const defaultName = `Chirp ${notes.length + 1}`;
+    const chirpInput = document.getElementById('chirpName');
+    chirpInput.value = defaultName;
+    chirpInput.placeholder = defaultName;
+    
+    // Focus and select the input for easy editing
+    setTimeout(() => {
+      chirpInput.focus();
+      chirpInput.select();
+    }, 100);
+  });
+  
   // Show preview section
   document.getElementById('previewSection').style.display = 'block';
   document.getElementById('recordBtn').disabled = true;
@@ -686,7 +711,7 @@ function displayNotes(notes) {
   container.innerHTML = notes.map((note, index) => `
     <div class="note-item">
       <div class="note-info">
-        <div style="color: ${getColorValue(note.color)};">● Whisper #${index + 1}</div>
+        <div style="color: ${getColorValue(note.color)}; cursor: pointer; font-weight: 500;" onclick="editNoteName(${index}, '${(note.name || `Chirp ${index + 1}`).replace(/'/g, "\\'")}')" title="Click to rename">● ${note.name || `Chirp ${index + 1}`}</div>
         <div style="font-size: 10px; color: #aaa;">${new Date(note.timestamp).toLocaleString()}</div>
       </div>
       <div class="note-actions">
@@ -727,6 +752,24 @@ window.deleteNote = async (index) => {
       loadNotes();
       chrome.tabs.sendMessage(tab.id, { action: 'refreshBubbles' });
     });
+  });
+};
+
+window.editNoteName = async (index, currentName) => {
+  const newName = prompt('Rename this chirp:', currentName);
+  if (newName === null || newName.trim() === '') return;
+  
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const url = new URL(tab.url).hostname + new URL(tab.url).pathname;
+  
+  chrome.storage.local.get([url], (result) => {
+    const notes = result[url] || [];
+    if (notes[index]) {
+      notes[index].name = newName.trim();
+      chrome.storage.local.set({ [url]: notes }, () => {
+        loadNotes();
+      });
+    }
   });
 };
 

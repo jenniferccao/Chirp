@@ -11,7 +11,7 @@ window.addEventListener('load', () => {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'enablePlacement') {
-    enablePlacementMode(request.audioData, request.color);
+    enablePlacementMode(request.audioData, request.color, request.name);
   } else if (request.action === 'playNote') {
     playNoteByIndex(request.index);
   } else if (request.action === 'refreshBubbles') {
@@ -20,9 +20,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-function enablePlacementMode(audioData, color) {
+function enablePlacementMode(audioData, color, name) {
   placementMode = true;
-  pendingNote = { audioData, color };
+  pendingNote = { audioData, color, name };
   
   // Create overlay
   const overlay = document.createElement('div');
@@ -56,6 +56,7 @@ async function placeNote(x, y) {
     // Add new note
     const newNote = {
       id: Date.now().toString(),
+      name: pendingNote.name || `Chirp ${notes.length + 1}`,
       position: { x, y },
       audioData: pendingNote.audioData,
       color: pendingNote.color,
