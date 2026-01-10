@@ -1,0 +1,156 @@
+.whisper-bubble {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: bubbleFloat 3s ease-in-out infinite, bubbleFadeIn 0.5s ease-out;
+    user-select: none;
+  }
+  
+  @keyframes bubbleFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes bubbleFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .whisper-bubble:hover {
+    transform: scale(1.2) translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  }
+  
+  .whisper-bubble.playing {
+    animation: bubblePulse 0.5s ease-in-out infinite;
+  }
+  
+  @keyframes bubblePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+  
+  .whisper-bubble.pink {
+    background: linear-gradient(135deg, #FFB5C5 0%, #ff8fab 100%);
+  }
+  
+  .whisper-bubble.lavender {
+    background: linear-gradient(135deg, #E6E6FA 0%, #d4a5e8 100%);
+  }
+  
+  .whisper-bubble.mint {
+    background: linear-gradient(135deg, #B5EAD7 0%, #8dd9bf 100%);
+  }
+  
+  .whisper-bubble.peach {
+    background: linear-gradient(135deg, #FFDAB9 0%, #ffb88c 100%);
+  }
+  
+  .whisper-bubble.sky {
+    background: linear-gradient(135deg, #B5D8EB 0%, #87ceeb 100%);
+  }
+  
+  .whisper-bubble::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    background: inherit;
+    filter: blur(10px);
+    opacity: 0.3;
+    z-index: -1;
+  }
+  
+  .whisper-bubble .delete-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    background: #ff4757;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
+  
+  .whisper-bubble:hover .delete-btn {
+    display: flex;
+  }
+  
+  .whisper-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.05);
+    z-index: 999998;
+    cursor: crosshair;
+  }
+  
+  .whisper-tooltip {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #FFB5C5 0%, #E6E6FA 100%);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    z-index: 999999;
+    animation: tooltipBounce 2s ease-in-out infinite;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  @keyframes tooltipBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-5px); }
+  }
+  
+  .whisper-sparkle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: sparkle 1s ease-out forwards;
+  }
+  
+  @keyframes sparkle {
+    0% {
+      opacity: 1;
+      transform: translate(0, 0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--tx), var(--ty)) scale(0);
+    }
+  }

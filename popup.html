@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🫧 Sticky Whispers</h1>
+      <p class="subtitle">Leave voice notes anywhere!</p>
+    </div>
+
+    <div class="api-key-section" id="apiKeySection">
+      <input 
+        type="password" 
+        id="apiKeyInput" 
+        placeholder="Enter ElevenLabs API Key"
+        class="api-input"
+      >
+      <button id="saveApiKey" class="btn btn-primary">Save Key</button>
+      <p class="help-text">Get your free key at <a href="https://elevenlabs.io" target="_blank">elevenlabs.io</a></p>
+    </div>
+
+    <div class="main-section" id="mainSection" style="display: none;">
+      <div class="recorder">
+        <div class="record-visual" id="recordVisual">
+          <div class="mic-icon">🎙️</div>
+        </div>
+        
+        <div class="controls">
+          <button id="recordBtn" class="btn btn-record">
+            <span id="recordBtnText">Start Recording</span>
+          </button>
+          <div class="timer" id="timer">0:00</div>
+        </div>
+
+        <div class="color-picker">
+          <p>Choose bubble color:</p>
+          <div class="colors">
+            <div class="color-option pink active" data-color="pink"></div>
+            <div class="color-option lavender" data-color="lavender"></div>
+            <div class="color-option mint" data-color="mint"></div>
+            <div class="color-option peach" data-color="peach"></div>
+            <div class="color-option sky" data-color="sky"></div>
+          </div>
+        </div>
+
+        <div class="preview" id="previewSection" style="display: none;">
+          <p>✨ Recording saved! Click anywhere on the page to place your whisper.</p>
+          <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+
+      <div class="notes-list" id="notesList">
+        <h3>Your whispers on this page:</h3>
+        <div id="notesContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
