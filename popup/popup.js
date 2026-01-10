@@ -9,6 +9,21 @@ let selectedColor = 'pink';
 let currentAudioData = null;
 let currentTranscript = null;
 let recognition = null;
+let audioMotion = null;
+
+// Audio cropping variables
+let currentAudioBlob;
+let audioBuffer;
+let audioContext;
+let cropStartTime = 0;
+let cropEndTime = 0;
+let audioDuration = 0;
+let isDragging = false;
+let dragHandle = null;
+let currentAudioSource = null;
+let isPlaying = false;
+let playbackStartTime = 0;
+let playbackAnimationId = null;
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -49,8 +64,9 @@ function showApiKeySection() {
 }
 
 function showMainSection() {
-  document.getElementById('apiKeySection').style.display = 'none';
-  document.getElementById('mainSection').style.display = 'block';
+      document.getElementById('apiKeySection').style.display = 'none';
+      document.getElementById('mainSection').style.display = 'block';
+      initializeVisualizer();
 }
 
 function showStatus(message, type) {
@@ -68,20 +84,22 @@ function setupEventListeners() {
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// Color picker
+document.querySelectorAll('.color-option').forEach(option => {
+  option.addEventListener('click', () => {
+    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('active'));
+    option.classList.add('active');
+    selectedColor = option.dataset.color;
   });
-  
-  // Color picker
-  document.querySelectorAll('.color-option').forEach(option => {
-    option.addEventListener('click', () => {
-      document.querySelectorAll('.color-option').forEach(o => o.classList.remove('active'));
-      option.classList.add('active');
-      selectedColor = option.dataset.color;
-    });
-  });
-  
+});
+
   // Recording
   document.getElementById('recordBtn').addEventListener('click', toggleRecording);
   document.getElementById('cancelBtn').addEventListener('click', cancelRecording);
+  document.getElementById('saveAudioBtn').addEventListener('click', saveAudio);
+  document.getElementById('resetCropBtn').addEventListener('click', resetCrop);
   
   // Text-to-Speech
   document.getElementById('textInput').addEventListener('input', updateCharCount);
@@ -313,6 +331,10 @@ async function processAudio(audioBlob) {
     }
     
     currentAudioData = audioData;
+    currentAudioBlob = audioBlob;
+    
+    // Setup audio cropping
+    await setupAudioCropping(audioBlob);
     
     // Show preview section
     document.getElementById('previewSection').style.display = 'block';
@@ -320,7 +342,7 @@ async function processAudio(audioBlob) {
     
     // Send message to content script to enable placement mode
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       if (!tab || !tab.id) {
         console.error('No active tab found');
@@ -330,8 +352,8 @@ async function processAudio(audioBlob) {
       
       console.log('Sending enablePlacement message to tab:', tab.id);
       
-      chrome.tabs.sendMessage(tab.id, {
-        action: 'enablePlacement',
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'enablePlacement',
         audioData: audioData,
         color: selectedColor,
         transcript: currentTranscript
@@ -422,12 +444,63 @@ function transcribeAudio(audioBlob) {
 }
 
 function cancelRecording() {
+  stopAudio();
   audioChunks = [];
   currentAudioData = null;
   currentTranscript = null;
+  currentAudioBlob = null;
   document.getElementById('previewSection').style.display = 'none';
   document.getElementById('transcriptPreview').style.display = 'none';
+  document.getElementById('audioCropSection').style.display = 'none';
   document.getElementById('recordBtn').disabled = false;
+}
+
+// Save audio with cropping and naming
+async function saveAudio() {
+  try {
+    // Get chirp name
+    const chirpName = document.getElementById('chirpName').value.trim() || 'Chirp ' + Date.now();
+    
+    // Get cropped audio
+    const finalAudioBlob = await getCroppedAudioBlob();
+    
+    // Convert to base64
+    const reader = new FileReader();
+    reader.readAsDataURL(finalAudioBlob);
+    
+    reader.onloadend = async () => {
+      const audioData = reader.result;
+      
+      // Send to content script to enable placement
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!tab || !tab.id) {
+        console.error('No active tab found');
+        alert('Please make sure you are on a webpage to place whispers.');
+        return;
+      }
+      
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'enablePlacement',
+        audioData: audioData,
+        transcript: currentTranscript || '',
+        color: selectedColor,
+        name: chirpName
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error sending message:', chrome.runtime.lastError);
+        } else {
+          console.log('Placement enabled:', response);
+        }
+      });
+      
+      // Close popup after sending
+      window.close();
+    };
+  } catch (error) {
+    console.error('Error saving audio:', error);
+    alert('Error saving audio. Please try again.');
+  }
 }
 
 // Text-to-Speech Functions
@@ -644,8 +717,8 @@ async function loadNotes() {
   const url = new URL(tab.url).hostname + new URL(tab.url).pathname;
   
   const result = await chrome.storage.local.get([url]);
-  const notes = result[url] || [];
-  displayNotes(notes);
+    const notes = result[url] || [];
+    displayNotes(notes);
 }
 
 function displayNotes(notes) {
@@ -728,12 +801,12 @@ async function deleteNote(index) {
   const url = new URL(tab.url).hostname + new URL(tab.url).pathname;
   
   const result = await chrome.storage.local.get([url]);
-  const notes = result[url] || [];
-  notes.splice(index, 1);
+    const notes = result[url] || [];
+    notes.splice(index, 1);
   
   await chrome.storage.local.set({ [url]: notes });
-  loadNotes();
-  chrome.tabs.sendMessage(tab.id, { action: 'refreshBubbles' });
+      loadNotes();
+      chrome.tabs.sendMessage(tab.id, { action: 'refreshBubbles' });
 }
 
 // Export Notes
@@ -802,3 +875,365 @@ function debounce(func, wait) {
     timeout = setTimeout(later, wait);
   };
 }
+// Audio Visualization and Cropping Features
+// These functions are extracted from the team's audio cropping feature
+
+// Initialize audio visualizer
+function initializeVisualizer() {
+  const canvas = document.getElementById('audioCanvas');
+  if (!canvas || audioMotion) return; // Already initialized or canvas not found
+  
+  // Check if AudioMotionAnalyzer is available
+  if (typeof AudioMotionAnalyzer === 'undefined') {
+    console.warn('AudioMotionAnalyzer library not loaded yet, retrying...');
+    setTimeout(initializeVisualizer, 100);
+    return;
+  }
+  
+  try {
+    // Create audio context
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    audioMotion = new AudioMotionAnalyzer(canvas, {
+      audioCtx: audioCtx,
+      height: 100,
+      width: 100,
+      barSpace: 0.1,
+      gradient: 'rainbow',
+      mode: 3,
+      radial: true,
+      showBgColor: false,
+      showLeds: false,
+      showScaleX: false,
+      showScaleY: false,
+      showPeaks: false,
+      showFPS: false,
+      spinSpeed: 2,
+      start: false // Don't start automatically
+    });
+    
+    console.log('Audio visualizer initialized successfully');
+  } catch (error) {
+    console.error('Error initializing visualizer:', error);
+  }
+}
+
+// Draw waveform on canvas
+function drawWaveform() {
+  const canvas = document.getElementById('waveformCanvas');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width = 300;
+  const height = canvas.height = 60;
+  
+  ctx.clearRect(0, 0, width, height);
+  
+  if (!audioBuffer) return;
+  
+  const data = audioBuffer.getChannelData(0);
+  const step = Math.ceil(data.length / width);
+  const amp = height / 2;
+  
+  ctx.fillStyle = '#d8769e';
+  ctx.beginPath();
+  
+  for (let i = 0; i < width; i++) {
+    let min = 1.0;
+    let max = -1.0;
+    
+    for (let j = 0; j < step; j++) {
+      const datum = data[(i * step) + j];
+      if (datum < min) min = datum;
+      if (datum > max) max = datum;
+    }
+    
+    const yMin = (1 + min) * amp;
+    const yMax = (1 + max) * amp;
+    
+    ctx.fillRect(i, yMin, 1, yMax - yMin);
+  }
+}
+
+// Setup crop handlers
+function setupCropHandlers() {
+  const canvas = document.getElementById('waveformCanvas');
+  const startHandle = document.getElementById('cropStart');
+  const endHandle = document.getElementById('cropEnd');
+  
+  if (!canvas || !startHandle || !endHandle) return;
+  
+  // Canvas click to set crop points or play audio
+  canvas.addEventListener('click', (e) => {
+    if (isDragging) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ratio = x / rect.width;
+    const time = ratio * audioDuration;
+    
+    // If clicking within crop region, play cropped audio
+    if (time >= cropStartTime && time <= cropEndTime) {
+      playCroppedAudio();
+      return;
+    }
+    
+    // Otherwise, set crop points
+    const distToStart = Math.abs(time - cropStartTime);
+    const distToEnd = Math.abs(time - cropEndTime);
+    
+    if (distToStart < distToEnd) {
+      cropStartTime = Math.max(0, time);
+    } else {
+      cropEndTime = Math.min(audioDuration, time);
+    }
+    
+    // Ensure start is before end
+    if (cropStartTime >= cropEndTime) {
+      if (distToStart < distToEnd) {
+        cropEndTime = Math.min(audioDuration, cropStartTime + 0.1);
+      } else {
+        cropStartTime = Math.max(0, cropEndTime - 0.1);
+      }
+    }
+    
+    updateCropRegion();
+    updateCropInfo();
+  });
+  
+  // Handle dragging
+  [startHandle, endHandle].forEach(handle => {
+    handle.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragHandle = handle;
+      e.preventDefault();
+    });
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging || !dragHandle) return;
+    
+    const canvas = document.getElementById('waveformCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, x / rect.width));
+    const time = ratio * audioDuration;
+    
+    if (dragHandle.id === 'cropStart') {
+      cropStartTime = Math.max(0, Math.min(cropEndTime - 0.1, time));
+    } else {
+      cropEndTime = Math.max(cropStartTime + 0.1, Math.min(audioDuration, time));
+    }
+    
+    updateCropRegion();
+    updateCropInfo();
+  });
+  
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    dragHandle = null;
+  });
+}
+
+// Update crop region visual
+function updateCropRegion() {
+  const container = document.querySelector('.waveform-container');
+  const region = document.getElementById('cropRegion');
+  const startHandle = document.getElementById('cropStart');
+  const endHandle = document.getElementById('cropEnd');
+  
+  if (!container || !region || !startHandle || !endHandle) return;
+  
+  const startPercent = (cropStartTime / audioDuration) * 100;
+  const endPercent = (cropEndTime / audioDuration) * 100;
+  
+  startHandle.style.left = startPercent + '%';
+  endHandle.style.left = endPercent + '%';
+  
+  region.style.left = startPercent + '%';
+  region.style.width = (endPercent - startPercent) + '%';
+}
+
+// Update crop info display
+function updateCropInfo() {
+  const duration = cropEndTime - cropStartTime;
+  const elem = document.getElementById('cropDuration');
+  if (elem) {
+    elem.textContent = `Duration: ${duration.toFixed(1)}s`;
+  }
+}
+
+// Play cropped audio
+async function playCroppedAudio() {
+  if (!audioBuffer) return;
+  
+  stopAudio();
+  
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    currentAudioSource = audioContext.createBufferSource();
+    currentAudioSource.buffer = audioBuffer;
+    currentAudioSource.connect(audioContext.destination);
+    
+    const duration = cropEndTime - cropStartTime;
+    
+    currentAudioSource.onended = () => {
+      stopAudio();
+    };
+    
+    currentAudioSource.start(0, cropStartTime, duration);
+    isPlaying = true;
+  } catch (error) {
+    console.error('Error playing cropped audio:', error);
+  }
+}
+
+// Stop audio playback
+function stopAudio() {
+  if (currentAudioSource) {
+    try {
+      currentAudioSource.stop();
+    } catch (e) {
+      // Already stopped
+    }
+    currentAudioSource = null;
+  }
+  isPlaying = false;
+  
+  if (playbackAnimationId) {
+    cancelAnimationFrame(playbackAnimationId);
+    playbackAnimationId = null;
+  }
+}
+
+// Reset crop to full audio
+function resetCrop() {
+  cropStartTime = 0;
+  cropEndTime = audioDuration;
+  updateCropRegion();
+  updateCropInfo();
+}
+
+// Setup audio for cropping
+async function setupAudioCropping(audioBlob) {
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    audioDuration = audioBuffer.duration;
+    
+    // Initialize crop to full duration
+    cropStartTime = 0;
+    cropEndTime = audioDuration;
+    
+    // Draw waveform
+    drawWaveform();
+    
+    // Setup handlers
+    setupCropHandlers();
+    
+    // Update UI
+    updateCropRegion();
+    updateCropInfo();
+    
+    // Show crop section
+    const cropSection = document.getElementById('audioCropSection');
+    if (cropSection) {
+      cropSection.style.display = 'block';
+    }
+  } catch (error) {
+    console.error('Error setting up audio cropping:', error);
+  }
+}
+
+// Get cropped audio blob
+async function getCroppedAudioBlob() {
+  if (!audioBuffer) return currentAudioBlob;
+  
+  try {
+    // Create offline context for rendering
+    const offlineContext = new OfflineAudioContext(
+      audioBuffer.numberOfChannels,
+      Math.ceil((cropEndTime - cropStartTime) * audioBuffer.sampleRate),
+      audioBuffer.sampleRate
+    );
+    
+    // Create buffer source
+    const source = offlineContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineContext.destination);
+    
+    // Start at crop start time
+    source.start(0, cropStartTime, cropEndTime - cropStartTime);
+    
+    // Render
+    const renderedBuffer = await offlineContext.startRendering();
+    
+    // Convert to WAV blob
+    const wav = audioBufferToWav(renderedBuffer);
+    return new Blob([wav], { type: 'audio/wav' });
+  } catch (error) {
+    console.error('Error cropping audio:', error);
+    return currentAudioBlob;
+  }
+}
+
+// Convert AudioBuffer to WAV
+function audioBufferToWav(buffer) {
+  const length = buffer.length * buffer.numberOfChannels * 2 + 44;
+  const arrayBuffer = new ArrayBuffer(length);
+  const view = new DataView(arrayBuffer);
+  const channels = [];
+  let offset = 0;
+  let pos = 0;
+  
+  // Write WAV header
+  setUint32(0x46464952); // "RIFF"
+  setUint32(length - 8); // file length - 8
+  setUint32(0x45564157); // "WAVE"
+  
+  setUint32(0x20746d66); // "fmt " chunk
+  setUint32(16); // length = 16
+  setUint16(1); // PCM (uncompressed)
+  setUint16(buffer.numberOfChannels);
+  setUint32(buffer.sampleRate);
+  setUint32(buffer.sampleRate * 2 * buffer.numberOfChannels); // avg. bytes/sec
+  setUint16(buffer.numberOfChannels * 2); // block-align
+  setUint16(16); // 16-bit
+  
+  setUint32(0x61746164); // "data" - chunk
+  setUint32(length - pos - 4); // chunk length
+  
+  // Write interleaved data
+  for (let i = 0; i < buffer.numberOfChannels; i++) {
+    channels.push(buffer.getChannelData(i));
+  }
+  
+  while (pos < length) {
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      const sample = Math.max(-1, Math.min(1, channels[i][offset]));
+      view.setInt16(pos, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      pos += 2;
+    }
+    offset++;
+  }
+  
+  return arrayBuffer;
+  
+  function setUint16(data) {
+    view.setUint16(pos, data, true);
+    pos += 2;
+  }
+  
+  function setUint32(data) {
+    view.setUint32(pos, data, true);
+    pos += 4;
+  }
+}
+

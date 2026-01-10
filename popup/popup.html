@@ -9,8 +9,8 @@
 <body role="application" aria-label="Sticky Whispers Extension">
   <div class="container">
     <div class="header">
-      <h1>🫧 Sticky Whispers</h1>
-      <p class="subtitle">AI-powered voice notes anywhere!</p>
+      <img src="../icons/chirplogo.png" alt="Chirp" class="logo">
+      <p class="subtitle">Leave voice notes anywhere!</p>
     </div>
 
     <!-- API Key Setup Section -->
@@ -45,7 +45,8 @@
           </div>
           
           <div class="record-visual" id="recordVisual">
-            <div class="mic-icon">🎙️</div>
+            <canvas id="audioCanvas" width="100" height="100"></canvas>
+            <div class="mic-icon" id="micIcon">🎙️</div>
           </div>
           
           <div class="controls">
@@ -71,9 +72,39 @@
           </div>
 
           <div class="preview" id="previewSection" style="display: none;">
+            <p>✨ Recording saved!</p>
+            
+            <div class="name-input-section" style="margin: 10px 0;">
+              <label for="chirpName" style="display: block; font-size: 12px; color: #666; margin-bottom: 5px;">Name your chirp:</label>
+              <input type="text" id="chirpName" placeholder="Chirp 1" style="width: 100%; padding: 8px; border: 2px solid #E6E6FA; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            </div>
+            
             <div id="transcriptPreview" class="transcript-preview"></div>
-            <p class="preview-text">✨ Recording saved! Click anywhere on the page to place your whisper.</p>
-            <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+            
+            <div class="audio-crop-section" id="audioCropSection">
+              <div class="waveform-container">
+                <canvas id="waveformCanvas" width="300" height="60"></canvas>
+                <div class="crop-handles">
+                  <div class="crop-handle start" id="cropStart"></div>
+                  <div class="crop-handle end" id="cropEnd"></div>
+                </div>
+                <div class="crop-region" id="cropRegion"></div>
+                <div class="playback-progress" id="playbackProgress"></div>
+              </div>
+              
+              <div class="crop-controls">
+                <button id="resetCropBtn" class="btn btn-small">↺ Reset</button>
+              </div>
+              
+              <div class="crop-info">
+                <span id="cropDuration">Duration: 0.0s</span>
+              </div>
+            </div>
+            
+            <div class="preview-actions">
+              <button id="saveAudioBtn" class="btn btn-primary">💾 Save</button>
+              <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
@@ -156,6 +187,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4/dist/audiomotion-analyzer.min.js"></script>
   <script src="../config.js"></script>
   <script src="popup.js"></script>
 </body>
