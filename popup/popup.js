@@ -193,3 +193,4 @@ window.deleteNote = async (index) => {
     });
   });
 };
+
