@@ -1,16 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sticky Whispers - AI Voice Notes</title>
   <link rel="stylesheet" href="popup.css">
 </head>
-<body>
+<body role="application" aria-label="Sticky Whispers Extension">
   <div class="container">
     <div class="header">
-      <img src="../icons/chirplogo.png" alt="Chirp" class="logo">
-      <p class="subtitle">Leave voice notes anywhere!</p>
+      <h1>🫧 Sticky Whispers</h1>
+      <p class="subtitle">AI-powered voice notes anywhere!</p>
     </div>
 
+    <!-- API Key Setup Section -->
     <div class="api-key-section" id="apiKeySection">
       <input 
         type="password" 
@@ -19,77 +22,141 @@
         class="api-input"
       >
       <button id="saveApiKey" class="btn btn-primary">Save Key</button>
+      <div id="apiKeyStatus" class="api-status"></div>
       <p class="help-text">Get your free key at <a href="https://elevenlabs.io" target="_blank">elevenlabs.io</a></p>
+      <p class="help-text">✨ Unlock AI transcription, voice enhancement & text-to-speech!</p>
     </div>
 
+    <!-- Main Application Section -->
     <div class="main-section" id="mainSection" style="display: none;">
-      <div class="recorder">
-        <div class="record-visual" id="recordVisual">
-          <canvas id="audioCanvas" width="100" height="100"></canvas>
-          <div class="mic-icon" id="micIcon">🎙️</div>
-        </div>
-        
-        <div class="controls">
-          <button id="recordBtn" class="btn btn-record">
-            <span id="recordBtnText">Start Recording</span>
-          </button>
-          <div class="timer" id="timer">0:00</div>
-        </div>
+      
+      <!-- Tab Navigation -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="record">🎙️ Record</button>
+        <button class="tab-btn" data-tab="text">✍️ Text</button>
+        <button class="tab-btn" data-tab="search">🔍 Search</button>
+      </div>
 
-        <div class="color-picker">
-          <p>Choose bubble color:</p>
-          <div class="colors">
-            <div class="color-option pink active" data-color="pink"></div>
-            <div class="color-option lavender" data-color="lavender"></div>
-            <div class="color-option mint" data-color="mint"></div>
-            <div class="color-option peach" data-color="peach"></div>
-            <div class="color-option sky" data-color="sky"></div>
+      <!-- Record Tab -->
+      <div class="tab-content active" id="recordTab" role="tabpanel" aria-labelledby="record-tab">
+        <div class="recorder">
+          <div class="help-tip">
+            💡 <strong>Tip:</strong> Select text on the page before recording to link your whisper to it!
           </div>
-        </div>
+          
+          <div class="record-visual" id="recordVisual">
+            <div class="mic-icon">🎙️</div>
+          </div>
+          
+          <div class="controls">
+            <button id="recordBtn" class="btn btn-record">
+              <span id="recordBtnText">Start Recording</span>
+            </button>
+            <div class="timer" id="timer">0:00</div>
+          </div>
 
-        <div class="preview" id="previewSection" style="display: none;">
-          <p>✨ Recording saved!</p>
-          
-          <div class="name-input-section" style="margin: 10px 0;">
-            <label for="chirpName" style="display: block; font-size: 12px; color: #666; margin-bottom: 5px;">Name your chirp:</label>
-            <input type="text" id="chirpName" placeholder="Chirp 1" style="width: 100%; padding: 8px; border: 2px solid #E6E6FA; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+          <div class="help-tip" style="margin-top: 10px;">
+            💡 <strong>Live Transcription:</strong> Your speech is automatically transcribed while you record!
           </div>
-          
-          <div class="audio-crop-section" id="audioCropSection">
-            <div class="waveform-container">
-              <canvas id="waveformCanvas" width="300" height="60"></canvas>
-              <div class="crop-handles">
-                <div class="crop-handle start" id="cropStart"></div>
-                <div class="crop-handle end" id="cropEnd"></div>
-              </div>
-              <div class="crop-region" id="cropRegion"></div>
-              <div class="playback-progress" id="playbackProgress"></div>
-            </div>
-            
-            <div class="crop-controls">
-              <button id="resetCropBtn" class="btn btn-small">↺ Reset</button>
-            </div>
-            
-            <div class="crop-info">
-              <span id="cropDuration">Duration: 0.0s</span>
+
+          <div class="color-picker">
+            <p>Choose bubble color:</p>
+            <div class="colors">
+              <div class="color-option pink active" data-color="pink"></div>
+              <div class="color-option lavender" data-color="lavender"></div>
+              <div class="color-option mint" data-color="mint"></div>
+              <div class="color-option peach" data-color="peach"></div>
+              <div class="color-option sky" data-color="sky"></div>
             </div>
           </div>
-          
-          <div class="preview-actions">
-            <button id="saveAudioBtn" class="btn btn-primary">💾 Save</button>
+
+          <div class="preview" id="previewSection" style="display: none;">
+            <div id="transcriptPreview" class="transcript-preview"></div>
+            <p class="preview-text">✨ Recording saved! Click anywhere on the page to place your whisper.</p>
             <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
           </div>
         </div>
       </div>
 
-      <div class="notes-list" id="notesList">
-        <h3>Your whispers on this page:</h3>
-        <div id="notesContainer"></div>
+      <!-- Text-to-Speech Tab -->
+      <div class="tab-content" id="textTab">
+        <div class="text-to-speech">
+          <h3>Create Whisper from Text</h3>
+          <div class="help-tip">
+            💡 <strong>Quick Tip:</strong> Right-click any text on a webpage and select "Read Aloud with Sticky Whispers"!
+          </div>
+          <textarea 
+            id="textInput" 
+            placeholder="Type your message here... (AI will speak it for you!)"
+            maxlength="500"
+            rows="4"
+          ></textarea>
+          <div class="char-count">
+            <span id="charCount">0</span>/500 characters
+          </div>
+          
+          <div class="voice-selector">
+            <label>Choose Voice:</label>
+            <select id="voiceSelect" class="voice-select">
+              <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Default)</option>
+              <option value="AZnzlk1XvdvUeBnXmlld">Domi</option>
+              <option value="EXAVITQu4vr4xnSDxMaL">Bella</option>
+              <option value="ErXwobaYiN019PkySvjV">Antoni</option>
+              <option value="MF3mGyEYCl7XYWbV9V6O">Elli</option>
+              <option value="TxGEqnHWrfWFTfGW9XjX">Josh</option>
+              <option value="VR6AewLTigWG4xSOukaG">Arnold</option>
+              <option value="pNInz6obpgDQGcFmaJgB">Adam</option>
+            </select>
+            <button id="refreshVoices" class="btn-icon" title="Load more voices">🔄</button>
+          </div>
+
+          <button id="generateSpeechBtn" class="btn btn-primary">
+            Generate Voice Whisper
+          </button>
+
+          <div id="ttsPreview" class="preview" style="display: none;">
+            <p class="preview-text">✨ Voice generated! Click anywhere on the page to place it.</p>
+            <button id="cancelTtsBtn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Tab -->
+      <div class="tab-content" id="searchTab" role="tabpanel" aria-labelledby="search-tab">
+        <div class="search-section">
+          <h3>Search Your Whispers</h3>
+          <div class="help-tip">
+            💡 Search finds whispers by transcript or highlighted text. Click "Scroll to Whisper" to jump right to it!
+          </div>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search by content or URL..."
+            class="search-input"
+          >
+          <div id="searchResults" class="search-results">
+            <p class="help-text">Search through all your transcribed whispers</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes List -->
+      <div class="notes-list" id="notesList" role="region" aria-label="Whispers List">
+        <div class="notes-header">
+          <h3 id="whispersSection">Whispers on this page:</h3>
+          <button id="exportBtn" class="btn-icon" title="Export all notes" aria-label="Export all whispers as JSON">💾</button>
+        </div>
+        <div id="notesContainer" role="list" aria-live="polite"></div>
+      </div>
+
+      <!-- User Info Footer -->
+      <div class="user-info" id="userInfo">
+        <small id="userInfoText">Loading...</small>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4/dist/audiomotion-analyzer.min.js"></script>
+  <script src="../config.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

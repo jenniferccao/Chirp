@@ -7,7 +7,10 @@
     "storage",
     "activeTab",
     "scripting",
-    "microphone"
+    "microphone",
+    "notifications",
+    "contextMenus",
+    "downloads"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -20,11 +23,17 @@
       "128": "icons/icon128.png"
     }
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["config.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content/bubble.js"],
-      "css": ["content/bubble.css"],
+      "js": ["config.js", "services/elevenlabs-service.js", "accessibility/reader.js", "content/bubble.js"],
+      "css": ["content/bubble.css", "accessibility/accessibility.css"],
       "run_at": "document_idle"
     }
   ],

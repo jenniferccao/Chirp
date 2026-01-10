@@ -1,0 +1,28 @@
+# API Keys and Secrets
+config.js
+
+# Node modules
+node_modules/
+package-lock.json
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Build files
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
+

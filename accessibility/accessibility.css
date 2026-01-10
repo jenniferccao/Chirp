@@ -1,0 +1,290 @@
+/* Accessibility Features CSS */
+
+/* Reading Indicator */
+.whisper-reading-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 999999;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.reading-indicator-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reading-icon {
+  font-size: 20px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.reading-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reading-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.voice-provider {
+  font-size: 11px;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.voice-selector-mini {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  max-width: 200px;
+  transition: all 0.2s;
+}
+
+.voice-selector-mini:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.voice-selector-mini:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+.voice-selector-mini option {
+  background: #4CAF50;
+  color: white;
+}
+
+.reading-stop-btn {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-left: 10px;
+}
+
+.reading-stop-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+/* Accessibility Toolbar */
+.whisper-accessibility-toolbar {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  z-index: 999998;
+  display: flex;
+  gap: 10px;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.accessibility-btn {
+  background: linear-gradient(135deg, #FFB5C5 0%, #E6E6FA 100%);
+  border: none;
+  color: white;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.accessibility-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.accessibility-btn:active {
+  transform: translateY(-1px);
+}
+
+.accessibility-btn.active {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  animation: pulse 2s infinite;
+}
+
+/* Tooltip for accessibility buttons */
+.accessibility-btn::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.accessibility-btn:hover::after {
+  opacity: 1;
+}
+
+/* Keyboard shortcuts help overlay */
+.whisper-shortcuts-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s;
+}
+
+.shortcuts-panel {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.shortcuts-panel h2 {
+  margin: 0 0 20px 0;
+  color: #d8769e;
+  font-size: 24px;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.shortcut-item:last-child {
+  border-bottom: none;
+}
+
+.shortcut-desc {
+  font-size: 14px;
+  color: #4a4a4a;
+}
+
+.shortcut-key {
+  background: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: bold;
+  color: #d8769e;
+  border: 2px solid #e0e0e0;
+}
+
+.close-shortcuts-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #FFB5C5 0%, #E6E6FA 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.close-shortcuts-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(216, 118, 158, 0.4);
+}
+
+/* Focus indicators for keyboard navigation */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #d8769e;
+  outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+

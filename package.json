@@ -1,0 +1,15 @@
+{
+  "name": "sticky-whispers",
+  "version": "1.0.0",
+  "description": "Leave cute voice notes on any webpage that persist across visits!",
+  "scripts": {
+    "build": "echo 'No build step required for basic extension'"
+  },
+  "dependencies": {
+    "elevenlabs": "^0.8.2"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "MIT"
+}
+
