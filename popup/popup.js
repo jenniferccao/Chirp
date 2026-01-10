@@ -729,3 +729,4 @@ window.deleteNote = async (index) => {
     });
   });
 };
+
