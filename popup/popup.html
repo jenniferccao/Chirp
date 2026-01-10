@@ -40,10 +40,6 @@
       <!-- Record Tab -->
       <div class="tab-content active" id="recordTab" role="tabpanel" aria-labelledby="record-tab">
         <div class="recorder">
-          <div class="help-tip">
-            💡 <strong>Tip:</strong> Select text on the page before recording to link your whisper to it!
-          </div>
-          
           <div class="record-visual" id="recordVisual">
             <canvas id="audioCanvas" width="100" height="100"></canvas>
             <div class="mic-icon" id="micIcon">🎙️</div>
@@ -54,10 +50,6 @@
               <span id="recordBtnText">Start Recording</span>
             </button>
             <div class="timer" id="timer">0:00</div>
-          </div>
-
-          <div class="help-tip" style="margin-top: 10px;">
-            💡 <strong>Live Transcription:</strong> Your speech is automatically transcribed while you record!
           </div>
 
           <div class="color-picker">
@@ -113,8 +105,34 @@
       <div class="tab-content" id="textTab">
         <div class="text-to-speech">
           <h3>Create Whisper from Text</h3>
-          <div class="help-tip">
-            💡 <strong>Quick Tip:</strong> Right-click any text on a webpage and select "Read Aloud with Sticky Whispers"!
+          
+          <div class="tips-section" id="tipsSection">
+            <div class="tips-header">
+              <h4>💡 Tips & Shortcuts</h4>
+              <button class="btn-close-tips" id="closeTips" title="Hide tips">×</button>
+            </div>
+            <div class="tips-content">
+              <div class="tip-item">
+                <strong>📝 Link to Text:</strong> Select text on the page before recording to link your whisper to it!
+              </div>
+              <div class="tip-item">
+                <strong>🎤 Live Transcription:</strong> Your speech is automatically transcribed while you record!
+              </div>
+              <div class="tip-item">
+                <strong>⌨️ Keyboard Shortcuts:</strong>
+                <ul>
+                  <li><kbd>Alt + R</kbd> - Read article aloud</li>
+                  <li><kbd>Alt + S</kbd> - Read selected text</li>
+                  <li><kbd>Alt + P</kbd> - Pause/Resume reading</li>
+                  <li><kbd>Alt + X</kbd> - Stop reading</li>
+                  <li><kbd>Alt + H</kbd> - Show all shortcuts</li>
+                  <li><kbd>Alt + T</kbd> - Toggle accessibility toolbar</li>
+                </ul>
+              </div>
+              <div class="tip-item">
+                <strong>🎙️ Right-Click Menu:</strong> Right-click any text and select "Read Aloud with Sticky Whispers"!
+              </div>
+            </div>
           </div>
           <textarea 
             id="textInput" 

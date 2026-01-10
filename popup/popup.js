@@ -112,6 +112,27 @@ document.querySelectorAll('.color-option').forEach(option => {
   
   // Export
   document.getElementById('exportBtn').addEventListener('click', exportNotes);
+  
+  // Tips close button
+  const closeTipsBtn = document.getElementById('closeTips');
+  if (closeTipsBtn) {
+    closeTipsBtn.addEventListener('click', () => {
+      const tipsSection = document.getElementById('tipsSection');
+      if (tipsSection) {
+        tipsSection.classList.add('hidden');
+        // Save preference
+        localStorage.setItem('whisper-tips-hidden', 'true');
+      }
+    });
+  }
+  
+  // Check if tips should be hidden
+  if (localStorage.getItem('whisper-tips-hidden') === 'true') {
+    const tipsSection = document.getElementById('tipsSection');
+    if (tipsSection) {
+      tipsSection.classList.add('hidden');
+    }
+  }
 }
 
 // API Key Management
