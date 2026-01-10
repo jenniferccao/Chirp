@@ -207,7 +207,6 @@ body {
   .btn-primary {
     background: linear-gradient(135deg, #d8769e 0%, #c589b5 100%);
     color: white;
-    width: 100%;
   }
   
   .btn-primary:hover {
@@ -233,7 +232,10 @@ body {
   .btn-secondary {
     background: #e0e0e0;
     color: #4a4a4a;
-    margin-top: 10px;
+  }
+  
+  .btn-secondary:hover {
+    background: #d0d0d0;
   }
   
   .color-picker {
@@ -791,10 +793,12 @@ body {
   display: flex;
   gap: 10px;
   margin-top: 15px;
+  width: 100%;
 }
 
 .preview-actions .btn {
   flex: 1;
+  min-width: 0; /* Allows flex items to shrink below content size */
 }
 
 .name-input-section {
