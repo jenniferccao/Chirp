@@ -357,40 +357,12 @@ async function processAudio(audioBlob) {
     // Setup audio cropping
     await setupAudioCropping(audioBlob);
     
-    // Show preview section
+    // Show preview section (user will click Save to place the whisper)
     document.getElementById('previewSection').style.display = 'block';
     document.getElementById('recordBtn').disabled = true;
     
-    // Send message to content script to enable placement mode
-    try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
-      if (!tab || !tab.id) {
-        console.error('No active tab found');
-        alert('Please make sure you are on a webpage to place whispers.');
-        return;
-      }
-      
-      console.log('Sending enablePlacement message to tab:', tab.id);
-      
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'enablePlacement',
-        audioData: audioData,
-        color: selectedColor,
-        transcript: currentTranscript
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error sending message:', chrome.runtime.lastError);
-          // Don't show alert, just log the error
-          // User can refresh if needed
-        } else {
-          console.log('Placement mode enabled successfully');
-        }
-      });
-    } catch (error) {
-      console.error('Error enabling placement mode:', error);
-      alert('Error: ' + error.message);
-    }
+    // Don't send placement message here - wait for user to click Save button
+    // This prevents double placement bug
   };
 }
 
