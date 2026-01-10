@@ -112,41 +112,57 @@ function createBubble(note) {
 
 function makeDraggable(bubble, note) {
   let isDragging = false;
-  let startX, startY, initialLeft, initialTop;
-  
-  bubble.addEventListener('mousedown', (e) => {
+  let grabOffsetX = 0;
+  let grabOffsetY = 0;
+
+  const onPointerDown = (e) => {
     if (e.target.classList.contains('delete-btn')) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Only react to primary button
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
     isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    initialLeft = bubble.offsetLeft;
-    initialTop = bubble.offsetTop;
+
+    // Capture pointer so moves are delivered even off the bubble
+    try { bubble.setPointerCapture(e.pointerId); } catch (_) {}
+
+    // Calculate offset between cursor and bubble's top-left
+    grabOffsetX = e.pageX - bubble.offsetLeft;
+    grabOffsetY = e.pageY - bubble.offsetTop;
+
+    bubble.classList.add('dragging');
     bubble.style.cursor = 'grabbing';
-  });
-  
-  document.addEventListener('mousemove', (e) => {
+  };
+
+  const onPointerMove = (e) => {
     if (!isDragging) return;
-    
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const newLeft = initialLeft + dx;
-    const newTop = initialTop + dy;
-    
+    e.preventDefault();
+
+    const newLeft = e.pageX - grabOffsetX;
+    const newTop = e.pageY - grabOffsetY;
+
     bubble.style.left = `${newLeft}px`;
     bubble.style.top = `${newTop}px`;
-  });
-  
-  document.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      bubble.style.cursor = 'pointer';
-      
-      // Save new position
-      note.position.x = bubble.offsetLeft;
-      note.position.y = bubble.offsetTop;
-      updateNotePosition(note);
-    }
-  });
+  };
+
+  const endDrag = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    bubble.classList.remove('dragging');
+    bubble.style.cursor = 'pointer';
+
+    // Save new position
+    note.position.x = bubble.offsetLeft;
+    note.position.y = bubble.offsetTop;
+    updateNotePosition(note);
+  };
+
+  bubble.addEventListener('pointerdown', onPointerDown);
+  bubble.addEventListener('pointermove', onPointerMove);
+  bubble.addEventListener('pointerup', endDrag);
+  bubble.addEventListener('pointercancel', endDrag);
 }
 
 function updateNotePosition(note) {
