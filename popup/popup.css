@@ -20,10 +20,11 @@
     margin-bottom: 20px;
   }
   
-  h1 {
-    font-size: 24px;
-    color: #d8769e;
+  .logo {
+    height: 40px;
+    width: auto;
     margin-bottom: 5px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
   }
   
   .subtitle {
