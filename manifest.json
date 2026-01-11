@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Sticky Whispers",
+  "name": "Sticky Chirps",
   "version": "1.0",
   "description": "Leave cute voice notes on any webpage that persist across visits! 🫧",
   "permissions": [

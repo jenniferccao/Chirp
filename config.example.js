@@ -1,4 +1,4 @@
-// Configuration file for Sticky Whispers
+// Configuration file for Sticky Chirps
 // Copy this file to config.js and add your ElevenLabs API key
 
 const CONFIG = {

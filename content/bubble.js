@@ -1,4 +1,4 @@
-// Content script for Sticky Whispers
+// Content script for Sticky Chirps
 let placementMode = false;
 let pendingNote = null;
 let currentlyPlaying = null;
@@ -30,12 +30,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     playReadAloudAudio(request.audioData, request.text);
   } else if (request.action === 'showNotification') {
     showNotification(request.message);
-  } else if (request.action === 'scrollToWhisper') {
-    scrollToWhisperByText(request.searchText);
-  } else if (request.action === 'scrollToWhisperById') {
-    scrollToWhisperById(request.noteId);
-  } else if (request.action === 'highlightWhisperText') {
-    highlightAllWhisperTexts();
+  } else if (request.action === 'scrollToChirp') {
+    scrollToChirpByText(request.searchText);
+  } else if (request.action === 'scrollToChirpById') {
+    scrollToChirpById(request.noteId);
+  } else if (request.action === 'highlightChirpText') {
+    highlightAllChirpTexts();
   }
 });
 
@@ -55,24 +55,24 @@ function enablePlacementMode(audioData, color, transcript) {
   
   // Create overlay
   const overlay = document.createElement('div');
-  overlay.className = 'whisper-overlay';
-  overlay.id = 'whisperOverlay';
+  overlay.className = 'chirp-overlay';
+  overlay.id = 'chirpOverlay';
   
   // Create tooltip
   const tooltip = document.createElement('div');
-  tooltip.className = 'whisper-tooltip';
+  tooltip.className = 'chirp-tooltip';
   
-  let tooltipContent = '✨ Click anywhere to place your whisper!';
+  let tooltipContent = '✨ Click anywhere to place your chirp!';
   
   // If there's selected text, show it
   if (selectedTextContext) {
     tooltipContent = `
-      <div style="font-weight: bold;">✨ Click to place whisper with highlighted text!</div>
+      <div style="font-weight: bold;">✨ Click to place chirp with highlighted text!</div>
       <div style="font-size: 12px; margin-top: 5px; opacity: 0.9;">"${selectedTextContext.text.substring(0, 60)}${selectedTextContext.text.length > 60 ? '...' : ''}"</div>
     `;
   } else if (transcript) {
     tooltipContent = `
-      <div style="font-weight: bold;">✨ Click anywhere to place your whisper!</div>
+      <div style="font-weight: bold;">✨ Click anywhere to place your chirp!</div>
       <div style="font-size: 12px; margin-top: 5px; opacity: 0.9;">"${transcript.substring(0, 60)}${transcript.length > 60 ? '...' : ''}"</div>
     `;
   }
@@ -136,7 +136,7 @@ function loadBubbles() {
 
 function createBubble(note) {
   const bubble = document.createElement('div');
-  bubble.className = `whisper-bubble ${note.color}`;
+  bubble.className = `chirp-bubble ${note.color}`;
   bubble.style.left = `${note.position.x}px`;
   bubble.style.top = `${note.position.y}px`;
   bubble.dataset.noteId = note.id;
@@ -306,13 +306,13 @@ function deleteBubble(noteId) {
 }
 
 function clearBubbles() {
-  document.querySelectorAll('.whisper-bubble').forEach(bubble => bubble.remove());
+  document.querySelectorAll('.chirp-bubble').forEach(bubble => bubble.remove());
 }
 
 function createSparkles(x, y) {
   for (let i = 0; i < 8; i++) {
     const sparkle = document.createElement('div');
-    sparkle.className = 'whisper-sparkle';
+    sparkle.className = 'chirp-sparkle';
     sparkle.style.left = `${x}px`;
     sparkle.style.top = `${y}px`;
     
@@ -355,7 +355,7 @@ function playReadAloudAudio(audioData, text) {
 // Show notification
 function showNotification(message) {
   const notification = document.createElement('div');
-  notification.className = 'whisper-notification';
+  notification.className = 'chirp-notification';
   notification.textContent = message;
   
   document.body.appendChild(notification);
@@ -398,7 +398,7 @@ function highlightTextOnPage(text, noteId) {
       range.setEnd(node, index + text.length);
       
       const highlightSpan = document.createElement('span');
-      highlightSpan.className = 'whisper-highlight';
+      highlightSpan.className = 'chirp-highlight';
       highlightSpan.dataset.noteId = noteId;
       highlightSpan.dataset.originalText = text;
       
@@ -424,8 +424,8 @@ function highlightTextOnPage(text, noteId) {
   }
 }
 
-// Highlight all whisper texts on page load
-function highlightAllWhisperTexts() {
+// Highlight all chirp texts on page load
+function highlightAllChirpTexts() {
   const url = window.location.hostname + window.location.pathname;
   
   chrome.storage.local.get([url], (result) => {
@@ -455,8 +455,8 @@ function clearHighlights() {
   highlightedElements = [];
 }
 
-// Scroll to whisper by ID (from popup list click)
-function scrollToWhisperById(noteId) {
+// Scroll to chirp by ID (from popup list click)
+function scrollToChirpById(noteId) {
   const bubble = document.querySelector(`[data-note-id="${noteId}"]`);
   if (bubble) {
     // Scroll to bubble
@@ -467,7 +467,7 @@ function scrollToWhisperById(noteId) {
     setTimeout(() => bubble.classList.remove('pulse-highlight'), 2000);
     
     // Also highlight the text if it exists
-    const highlight = document.querySelector(`[data-note-id="${noteId}"].whisper-highlight`);
+    const highlight = document.querySelector(`[data-note-id="${noteId}"].chirp-highlight`);
     if (highlight) {
       highlight.classList.add('search-highlight-flash');
       setTimeout(() => highlight.classList.remove('search-highlight-flash'), 2000);
@@ -475,8 +475,8 @@ function scrollToWhisperById(noteId) {
   }
 }
 
-// Scroll to whisper by search text
-function scrollToWhisperByText(searchText) {
+// Scroll to chirp by search text
+function scrollToChirpByText(searchText) {
   const url = window.location.hostname + window.location.pathname;
   
   chrome.storage.local.get([url], (result) => {
@@ -489,7 +489,7 @@ function scrollToWhisperByText(searchText) {
     });
     
     if (matchingNote) {
-      scrollToWhisperById(matchingNote.id);
+      scrollToChirpById(matchingNote.id);
     }
   });
 }
@@ -497,7 +497,7 @@ function scrollToWhisperByText(searchText) {
 // Load highlights on page load
 window.addEventListener('load', () => {
   setTimeout(() => {
-    highlightAllWhisperTexts();
+    highlightAllChirpTexts();
   }, 500);
 });
 
@@ -519,7 +519,7 @@ function initializeAccessibility() {
   setupKeyboardShortcuts();
 
   // Announce page load for screen readers
-  announceForScreenReader('Sticky Whispers loaded. Press Alt+H for keyboard shortcuts.');
+  announceForScreenReader('Sticky Chirps loaded. Press Alt+H for keyboard shortcuts.');
 }
 
 // Create floating accessibility toolbar
@@ -528,8 +528,8 @@ function createAccessibilityToolbar() {
   const modKey = isMac ? '⌥' : 'Alt';
   
   const toolbar = document.createElement('div');
-  toolbar.className = 'whisper-accessibility-toolbar';
-  toolbar.id = 'whisper-accessibility-toolbar';
+  toolbar.className = 'chirp-accessibility-toolbar';
+  toolbar.id = 'chirp-accessibility-toolbar';
   toolbar.setAttribute('role', 'toolbar');
   toolbar.setAttribute('aria-label', 'Accessibility Tools');
 
@@ -572,7 +572,7 @@ function createAccessibilityToolbar() {
 
 // Toggle accessibility toolbar visibility
 function toggleAccessibilityToolbar() {
-  const toolbar = document.getElementById('whisper-accessibility-toolbar');
+  const toolbar = document.getElementById('chirp-accessibility-toolbar');
   if (toolbar) {
     accessibilityToolbarVisible = !accessibilityToolbarVisible;
     toolbar.style.display = accessibilityToolbarVisible ? 'flex' : 'none';
@@ -642,15 +642,15 @@ function setupKeyboardShortcuts() {
 // Show keyboard shortcuts overlay
 function showKeyboardShortcuts() {
   // Remove existing overlay if any
-  const existing = document.getElementById('whisper-shortcuts-overlay');
+  const existing = document.getElementById('chirp-shortcuts-overlay');
   if (existing) {
     existing.remove();
     return;
   }
 
   const overlay = document.createElement('div');
-  overlay.className = 'whisper-shortcuts-overlay';
-  overlay.id = 'whisper-shortcuts-overlay';
+  overlay.className = 'chirp-shortcuts-overlay';
+  overlay.id = 'chirp-shortcuts-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-label', 'Keyboard Shortcuts');
 

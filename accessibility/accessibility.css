@@ -1,7 +1,7 @@
 /* Accessibility Features CSS */
 
 /* Reading Indicator */
-.whisper-reading-indicator {
+.chirp-reading-indicator {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -111,7 +111,7 @@
 }
 
 /* Accessibility Toolbar */
-.whisper-accessibility-toolbar {
+.chirp-accessibility-toolbar {
   position: fixed;
   bottom: 20px;
   left: 20px;
@@ -190,7 +190,7 @@
 }
 
 /* Keyboard shortcuts help overlay */
-.whisper-shortcuts-overlay {
+.chirp-shortcuts-overlay {
   position: fixed;
   top: 0;
   left: 0;

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sticky Whispers - AI Voice Notes</title>
+  <title>Sticky Chirps - AI Voice Notes</title>
   <link rel="stylesheet" href="popup.css">
 </head>
-<body role="application" aria-label="Sticky Whispers Extension">
+<body role="application" aria-label="Sticky Chirps Extension">
   <div class="container">
     <div class="header">
       <img src="../icons/chirplogo.png" alt="Chirp" class="logo">
@@ -104,7 +104,7 @@
       <!-- Text-to-Speech Tab -->
       <div class="tab-content" id="textTab">
         <div class="text-to-speech">
-          <h3>Create Whisper from Text</h3>
+          <h3>Create Chirp from Text</h3>
           
           <div class="tips-section" id="tipsSection">
             <div class="tips-header">
@@ -113,7 +113,7 @@
             </div>
             <div class="tips-content">
               <div class="tip-item">
-                <strong>📝 Link to Text:</strong> Select text on the page before recording to link your whisper to it!
+                <strong>📝 Link to Text:</strong> Select text on the page before recording to link your chirp to it!
               </div>
               <div class="tip-item">
                 <strong>🎤 Live Transcription:</strong> Your speech is automatically transcribed while you record!
@@ -130,7 +130,7 @@
                 </ul>
               </div>
               <div class="tip-item">
-                <strong>🎙️ Right-Click Menu:</strong> Right-click any text and select "Read Aloud with Sticky Whispers"!
+                <strong>🎙️ Right-Click Menu:</strong> Right-click any text and select "Read Aloud with Sticky Chirps"!
               </div>
             </div>
           </div>
@@ -160,7 +160,7 @@
           </div>
 
           <button id="generateSpeechBtn" class="btn btn-primary">
-            Generate Voice Whisper
+            Generate Voice Chirp
           </button>
 
           <div id="ttsPreview" class="preview" style="display: none;">
@@ -173,9 +173,9 @@
       <!-- Search Tab -->
       <div class="tab-content" id="searchTab" role="tabpanel" aria-labelledby="search-tab">
         <div class="search-section">
-          <h3>Search Your Whispers</h3>
+          <h3>Search Your Chirps</h3>
           <div class="help-tip">
-            💡 Search finds whispers by transcript or highlighted text. Click "Scroll to Whisper" to jump right to it!
+            💡 Search finds chirps by transcript or highlighted text. Click "Scroll to Chirp" to jump right to it!
           </div>
           <input 
             type="text" 
@@ -184,16 +184,16 @@
             class="search-input"
           >
           <div id="searchResults" class="search-results">
-            <p class="help-text">Search through all your transcribed whispers</p>
+            <p class="help-text">Search through all your transcribed chirps</p>
           </div>
         </div>
       </div>
 
       <!-- Notes List -->
-      <div class="notes-list" id="notesList" role="region" aria-label="Whispers List">
+      <div class="notes-list" id="notesList" role="region" aria-label="Chirps List">
         <div class="notes-header">
-          <h3 id="whispersSection">Whispers on this page:</h3>
-          <button id="exportBtn" class="btn-icon" title="Export all notes" aria-label="Export all whispers as JSON">💾</button>
+          <h3 id="chirpsSection">Chirps on this page:</h3>
+          <button id="exportBtn" class="btn-icon" title="Export all notes" aria-label="Export all chirps as JSON">💾</button>
         </div>
         <div id="notesContainer" role="list" aria-live="polite"></div>
       </div>

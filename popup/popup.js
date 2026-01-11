@@ -1,4 +1,4 @@
-// Popup script for Sticky Whispers with ElevenLabs integration
+// Popup script for Sticky Chirps with ElevenLabs integration
 
 let mediaRecorder;
 let audioChunks = [];
@@ -108,7 +108,7 @@ document.querySelectorAll('.color-option').forEach(option => {
   document.getElementById('refreshVoices').addEventListener('click', loadVoices);
   
   // Search
-  document.getElementById('searchInput').addEventListener('input', debounce(searchWhispers, 300));
+  document.getElementById('searchInput').addEventListener('input', debounce(searchChirps, 300));
   
   // Export
   document.getElementById('exportBtn').addEventListener('click', exportNotes);
@@ -121,13 +121,13 @@ document.querySelectorAll('.color-option').forEach(option => {
       if (tipsSection) {
         tipsSection.classList.add('hidden');
         // Save preference
-        localStorage.setItem('whisper-tips-hidden', 'true');
+        localStorage.setItem('chirp-tips-hidden', 'true');
       }
     });
   }
   
   // Check if tips should be hidden
-  if (localStorage.getItem('whisper-tips-hidden') === 'true') {
+  if (localStorage.getItem('chirp-tips-hidden') === 'true') {
     const tipsSection = document.getElementById('tipsSection');
     if (tipsSection) {
       tipsSection.classList.add('hidden');
@@ -357,7 +357,7 @@ async function processAudio(audioBlob) {
     // Setup audio cropping
     await setupAudioCropping(audioBlob);
     
-    // Show preview section (user will click Save to place the whisper)
+    // Show preview section (user will click Save to place the chirp)
     document.getElementById('previewSection').style.display = 'block';
     document.getElementById('recordBtn').disabled = true;
     
@@ -469,7 +469,7 @@ async function saveAudio() {
       
       if (!tab || !tab.id) {
         console.error('No active tab found');
-        alert('Please make sure you are on a webpage to place whispers.');
+        alert('Please make sure you are on a webpage to place chirps.');
         return;
       }
       
@@ -549,7 +549,7 @@ async function generateSpeech() {
     alert('Failed to generate speech. Please try again.');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Generate Voice Whisper';
+    btn.textContent = 'Generate Voice Chirp';
   }
 }
 
@@ -590,12 +590,12 @@ async function loadVoices() {
 }
 
 // Search Functions
-async function searchWhispers() {
+async function searchChirps() {
   const query = document.getElementById('searchInput').value.trim().toLowerCase();
   const resultsContainer = document.getElementById('searchResults');
   
   if (!query) {
-    resultsContainer.innerHTML = '<p class="help-text">Search through all your transcribed whispers</p>';
+    resultsContainer.innerHTML = '<p class="help-text">Search through all your transcribed chirps</p>';
     return;
   }
   
@@ -627,7 +627,7 @@ async function searchWhispers() {
     displaySearchResults(results, query);
   } catch (error) {
     console.error('Search error:', error);
-    resultsContainer.innerHTML = '<p class="help-text">Error searching whispers</p>';
+    resultsContainer.innerHTML = '<p class="help-text">Error searching chirps</p>';
   }
 }
 
@@ -649,7 +649,7 @@ function displaySearchResults(results, query) {
         <div class="search-result-url">📍 ${result.url}</div>
         <div class="search-result-transcript">${highlightedText}</div>
         ${isCurrentPage ? 
-          `<button class="btn-scroll-to" data-index="${index}">📍 Scroll to Whisper</button>` : 
+          `<button class="btn-scroll-to" data-index="${index}">📍 Scroll to Chirp</button>` : 
           `<button class="btn-open-page" data-index="${index}">🔗 Open Page</button>`
         }
       </div>
@@ -663,10 +663,10 @@ function displaySearchResults(results, query) {
       const index = parseInt(btn.dataset.index);
       const result = results[index];
       
-      // Send message to content script to scroll to whisper
+      // Send message to content script to scroll to chirp
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       chrome.tabs.sendMessage(tab.id, {
-        action: 'scrollToWhisper',
+        action: 'scrollToChirp',
         searchText: query
       });
       
@@ -684,11 +684,11 @@ function displaySearchResults(results, query) {
       
       // Open the URL and send scroll message after page loads
       chrome.tabs.create({ url: `https://${url}` }, (tab) => {
-        // Wait for page to load, then scroll to whisper
+        // Wait for page to load, then scroll to chirp
         chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
           if (tabId === tab.id && info.status === 'complete') {
             chrome.tabs.sendMessage(tab.id, {
-              action: 'scrollToWhisper',
+              action: 'scrollToChirp',
               searchText: query
             });
             chrome.tabs.onUpdated.removeListener(listener);
@@ -718,14 +718,14 @@ function displayNotes(notes) {
   const container = document.getElementById('notesContainer');
   
   if (notes.length === 0) {
-    container.innerHTML = '<p style="color: #888; font-size: 12px;">No whispers yet on this page</p>';
+    container.innerHTML = '<p style="color: #888; font-size: 12px;">No chirps yet on this page</p>';
     return;
   }
   
   container.innerHTML = notes.map((note, index) => `
-    <div class="note-item scroll-to-whisper" data-note-id="${note.id}" data-index="${index}">
+    <div class="note-item scroll-to-chirp" data-note-id="${note.id}" data-index="${index}">
       <div class="note-info">
-        <div style="color: ${getColorValue(note.color)};">● Whisper #${index + 1}</div>
+        <div style="color: ${getColorValue(note.color)};">● Chirp #${index + 1}</div>
         ${note.transcript ? `<div style="font-size: 10px; color: #666; font-style: italic;">"${note.transcript.substring(0, 50)}${note.transcript.length > 50 ? '...' : ''}"</div>` : ''}
         <div style="font-size: 10px; color: #aaa;">${new Date(note.timestamp).toLocaleString()}</div>
       </div>
@@ -753,8 +753,8 @@ function displayNotes(notes) {
     });
   });
   
-  // Add click handler to scroll to whisper on page
-  container.querySelectorAll('.scroll-to-whisper').forEach(item => {
+  // Add click handler to scroll to chirp on page
+  container.querySelectorAll('.scroll-to-chirp').forEach(item => {
     item.addEventListener('click', async (e) => {
       // Don't trigger if clicking buttons
       if (e.target.closest('.note-btn')) return;
@@ -763,7 +763,7 @@ function displayNotes(notes) {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       chrome.tabs.sendMessage(tab.id, {
-        action: 'scrollToWhisperById',
+        action: 'scrollToChirpById',
         noteId: noteId
       });
     });
@@ -834,7 +834,7 @@ async function exportNotes() {
   
   chrome.downloads.download({
     url: downloadUrl,
-    filename: `sticky-whispers-${url.replace(/[^a-z0-9]/gi, '-')}.json`,
+    filename: `sticky-chirps-${url.replace(/[^a-z0-9]/gi, '-')}.json`,
     saveAs: true
   });
 }

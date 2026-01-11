@@ -1,4 +1,4 @@
-// ElevenLabs API Service for Sticky Whispers
+// ElevenLabs API Service for Sticky Chirps
 // This module handles all ElevenLabs API interactions
 
 class ElevenLabsService {

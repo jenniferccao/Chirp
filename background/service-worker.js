@@ -1,4 +1,4 @@
-// Background service worker for Sticky Whispers
+// Background service worker for Sticky Chirps
 // Handles ElevenLabs API calls and background processing
 
 // ElevenLabs Service (inline to avoid importScripts issue)
@@ -139,7 +139,7 @@ class ElevenLabsService {
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('Sticky Whispers installed! 🫧');
+  console.log('Sticky Chirps installed! 🫧');
   
   // Auto-initialize API key
   const HARDCODED_API_KEY = 'sk_371dd1ebfd6b3123e8674dee136c2792744760be31db90db';
@@ -153,7 +153,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   // Create context menu for "Read Aloud"
   chrome.contextMenus.create({
     id: 'readAloud',
-    title: 'Read Aloud with Sticky Whispers',
+    title: 'Read Aloud with Sticky Chirps',
     contexts: ['selection']
   });
 });

@@ -141,7 +141,7 @@ class ArticleReader {
   async speakWithElevenLabs(text, isLongText = false) {
     try {
       // Get selected voice
-      const savedVoiceId = localStorage.getItem('whisper-preferred-elevenlabs-voice');
+      const savedVoiceId = localStorage.getItem('chirp-preferred-elevenlabs-voice');
       const voiceId = savedVoiceId || this.elevenLabsVoices[0]?.voice_id;
 
       if (!voiceId) {
@@ -339,7 +339,7 @@ class ArticleReader {
   // Get best quality voice
   getBestVoice(voices) {
     // Try to get user's preferred voice from storage
-    const savedVoice = localStorage.getItem('whisper-preferred-voice');
+    const savedVoice = localStorage.getItem('chirp-preferred-voice');
     if (savedVoice) {
       const voice = voices.find(v => v.name === savedVoice);
       if (voice) return voice;
@@ -395,21 +395,21 @@ class ArticleReader {
   // Set preferred voice
   setVoice(voiceId, isElevenLabs = true) {
     if (isElevenLabs) {
-      localStorage.setItem('whisper-preferred-elevenlabs-voice', voiceId);
+      localStorage.setItem('chirp-preferred-elevenlabs-voice', voiceId);
     } else {
-      localStorage.setItem('whisper-preferred-voice', voiceId);
+      localStorage.setItem('chirp-preferred-voice', voiceId);
     }
   }
 
   // Show visual indicator that article is being read
   showReadingIndicator(show, status = 'reading') {
-    let indicator = document.getElementById('whisper-reading-indicator');
+    let indicator = document.getElementById('chirp-reading-indicator');
     
     if (show) {
       if (!indicator) {
         indicator = document.createElement('div');
-        indicator.id = 'whisper-reading-indicator';
-        indicator.className = 'whisper-reading-indicator';
+        indicator.id = 'chirp-reading-indicator';
+        indicator.className = 'chirp-reading-indicator';
         document.body.appendChild(indicator);
       }
 
@@ -420,8 +420,8 @@ class ArticleReader {
       const voices = this.getAvailableVoices();
       const isElevenLabs = this.useElevenLabs && this.elevenLabsVoices.length > 0;
       const currentVoiceId = isElevenLabs 
-        ? localStorage.getItem('whisper-preferred-elevenlabs-voice') 
-        : localStorage.getItem('whisper-preferred-voice');
+        ? localStorage.getItem('chirp-preferred-elevenlabs-voice') 
+        : localStorage.getItem('chirp-preferred-voice');
       
       // Build voice options
       let voiceOptions = '<option value="">Auto (Best Quality)</option>';
@@ -468,9 +468,9 @@ class ArticleReader {
           this.setVoice(voiceId, isElevenLabs);
         } else {
           if (isElevenLabs) {
-            localStorage.removeItem('whisper-preferred-elevenlabs-voice');
+            localStorage.removeItem('chirp-preferred-elevenlabs-voice');
           } else {
-            localStorage.removeItem('whisper-preferred-voice');
+            localStorage.removeItem('chirp-preferred-voice');
           }
         }
         // Restart reading with new voice

@@ -1,4 +1,4 @@
-.whisper-bubble {
+.chirp-bubble {
     position: absolute;
     width: 60px;
     height: 60px;
@@ -17,7 +17,7 @@
   touch-action: none;
   }
 
-  .whisper-bubble.dragging {
+  .chirp-bubble.dragging {
     transition: none !important;
     animation: none !important;
     transform: none !important;
@@ -40,12 +40,12 @@
     }
   }
   
-  .whisper-bubble:hover {
+  .chirp-bubble:hover {
     transform: scale(1.2) translateY(-5px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
   }
   
-  .whisper-bubble.playing {
+  .chirp-bubble.playing {
     animation: bubblePulse 0.5s ease-in-out infinite;
   }
   
@@ -54,27 +54,27 @@
     50% { transform: scale(1.15); }
   }
   
-  .whisper-bubble.pink {
+  .chirp-bubble.pink {
     background: linear-gradient(135deg, #FFB5C5 0%, #ff8fab 100%);
   }
   
-  .whisper-bubble.lavender {
+  .chirp-bubble.lavender {
     background: linear-gradient(135deg, #E6E6FA 0%, #d4a5e8 100%);
   }
   
-  .whisper-bubble.mint {
+  .chirp-bubble.mint {
     background: linear-gradient(135deg, #B5EAD7 0%, #8dd9bf 100%);
   }
   
-  .whisper-bubble.peach {
+  .chirp-bubble.peach {
     background: linear-gradient(135deg, #FFDAB9 0%, #ffb88c 100%);
   }
   
-  .whisper-bubble.sky {
+  .chirp-bubble.sky {
     background: linear-gradient(135deg, #B5D8EB 0%, #87ceeb 100%);
   }
   
-  .whisper-bubble::before {
+  .chirp-bubble::before {
     content: '';
     position: absolute;
     top: -5px;
@@ -88,7 +88,7 @@
     z-index: -1;
   }
   
-  .whisper-bubble .delete-btn {
+  .chirp-bubble .delete-btn {
     position: absolute;
     top: -8px;
     right: -8px;
@@ -106,7 +106,7 @@
     z-index: 10;
   }
   
-.whisper-bubble:hover .delete-btn {
+.chirp-bubble:hover .delete-btn {
   display: flex;
 }
 
@@ -131,11 +131,11 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.whisper-bubble:hover .bubble-transcript-tooltip {
+.chirp-bubble:hover .bubble-transcript-tooltip {
   opacity: 1;
 }
   
-  .whisper-overlay {
+  .chirp-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -146,7 +146,7 @@
     cursor: crosshair;
   }
   
-.whisper-tooltip {
+.chirp-tooltip {
   position: fixed;
   bottom: 20px;
   left: 50%;
@@ -170,7 +170,7 @@
     50% { transform: translateX(-50%) translateY(-5px); }
   }
   
-  .whisper-sparkle {
+  .chirp-sparkle {
     position: absolute;
     width: 8px;
     height: 8px;
@@ -192,7 +192,7 @@
 }
 
 /* Text Highlighting */
-.whisper-highlight {
+.chirp-highlight {
   background: linear-gradient(135deg, rgba(255, 181, 197, 0.4) 0%, rgba(230, 230, 250, 0.4) 100%);
   padding: 2px 4px;
   border-radius: 3px;
@@ -202,12 +202,12 @@
   position: relative;
 }
 
-.whisper-highlight:hover {
+.chirp-highlight:hover {
   background: linear-gradient(135deg, rgba(255, 181, 197, 0.6) 0%, rgba(230, 230, 250, 0.6) 100%);
   border-bottom-color: rgba(255, 181, 197, 1);
 }
 
-.whisper-highlight::after {
+.chirp-highlight::after {
   content: '🎙️';
   position: absolute;
   right: -20px;
@@ -217,7 +217,7 @@
   transition: opacity 0.3s;
 }
 
-.whisper-highlight:hover::after {
+.chirp-highlight:hover::after {
   opacity: 1;
 }
 
@@ -252,7 +252,7 @@
 }
 
 /* Notification */
-.whisper-notification {
+.chirp-notification {
   position: fixed;
   top: 20px;
   right: 20px;
@@ -271,7 +271,7 @@
   max-width: 300px;
 }
 
-.whisper-notification.show {
+.chirp-notification.show {
   opacity: 1;
   transform: translateX(0);
 }
