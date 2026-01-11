@@ -26,8 +26,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["accessibility/reader.js", "content/bubble.js"],
-      "css": ["content/bubble.css", "accessibility/accessibility.css"],
+      "js": ["accessibility/reader.js", "services/team-service.js", "services/heatmap-service.js", "content/bubble.js"],
+      "css": ["content/bubble.css", "accessibility/accessibility.css", "styles/team-heatmap.css"],
       "run_at": "document_idle"
     }
   ],
