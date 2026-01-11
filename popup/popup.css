@@ -1,3 +1,6 @@
+/* Import team and heatmap styles */
+@import url('../styles/team-heatmap.css');
+
 * {
   margin: 0;
   padding: 0;

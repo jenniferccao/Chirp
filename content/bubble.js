@@ -36,6 +36,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     scrollToChirpById(request.noteId);
   } else if (request.action === 'highlightChirpText') {
     highlightAllChirpTexts();
+  } else if (request.action === 'scrollToWhisper') {
+    scrollToWhisperByText(request.searchText);
+  } else if (request.action === 'scrollToWhisperById') {
+    scrollToWhisperById(request.noteId || request.whisperId);
+    sendResponse({ success: true });
+  } else if (request.action === 'highlightWhisperText') {
+    highlightAllWhisperTexts();
+  } else if (request.action === 'loadTeamBubbles') {
+    loadTeamBubbles(request.teamCode);
+    sendResponse({ success: true });
+  } else if (request.action === 'clearTeamBubbles') {
+    clearBubbles();
+    sendResponse({ success: true });
+  } else if (request.action === 'toggleHeatmap') {
+    toggleHeatmap(request.enabled, request.mode, request.teamCode);
+    sendResponse({ success: true });
   }
 });
 
@@ -768,5 +784,145 @@ function playSound(type) {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.05);
       break;
+  }
+}
+
+// Team Bubbles Functions
+async function loadTeamBubbles(teamCode) {
+  console.log('🎭 Loading team bubbles for:', teamCode);
+  clearBubbles(); // Clear existing bubbles first
+  
+  try {
+    // Get team data from storage
+    const result = await chrome.storage.local.get(['teams']);
+    if (!result.teams || !result.teams[teamCode]) {
+      console.log('No team found with code:', teamCode);
+      return;
+    }
+    
+    const team = result.teams[teamCode];
+    const currentUrl = window.location.href;
+    
+    // Filter whispers for current page
+    const pageWhispers = team.whispers.filter(w => w.url === currentUrl);
+    console.log(`📦 Found ${pageWhispers.length} team whispers for this page`);
+    
+    // Create bubbles for each whisper
+    pageWhispers.forEach(whisper => {
+      createBubble(whisper);
+    });
+  } catch (error) {
+    console.error('Error loading team bubbles:', error);
+  }
+}
+
+// Heatmap Functions
+let heatmapOverlay = null;
+
+function toggleHeatmap(enabled, mode, teamCode) {
+  console.log('🗺️ Toggle heatmap:', enabled, mode, teamCode);
+  
+  if (enabled) {
+    showHeatmap(mode, teamCode);
+  } else {
+    hideHeatmap();
+  }
+}
+
+async function showHeatmap(mode, teamCode) {
+  hideHeatmap(); // Clear existing heatmap first
+  
+  try {
+    const currentUrl = window.location.href;
+    let whispers = [];
+    
+    if (mode === 'team' && teamCode) {
+      // Get team whispers
+      const result = await chrome.storage.local.get(['teams']);
+      if (result.teams && result.teams[teamCode]) {
+        whispers = result.teams[teamCode].whispers.filter(w => w.url === currentUrl);
+      }
+    } else {
+      // Get community whispers (all whispers on this page)
+      const result = await chrome.storage.local.get([currentUrl]);
+      whispers = result[currentUrl] || [];
+    }
+    
+    if (whispers.length === 0) {
+      console.log('No whispers to show heatmap for');
+      return;
+    }
+    
+    // Create heatmap overlay
+    heatmapOverlay = document.createElement('div');
+    heatmapOverlay.className = 'whisper-heatmap-overlay';
+    heatmapOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999998;
+    `;
+    
+    // Calculate heatmap intensity for different Y positions
+    const yPositions = whispers.map(w => w.position.y);
+    const minY = Math.min(...yPositions);
+    const maxY = Math.max(...yPositions);
+    const range = maxY - minY || 1;
+    
+    // Create heatmap segments (divide page into sections)
+    const segments = 20;
+    const segmentHeight = document.body.scrollHeight / segments;
+    
+    for (let i = 0; i < segments; i++) {
+      const segmentY = i * segmentHeight;
+      const segmentCenter = segmentY + segmentHeight / 2;
+      
+      // Count whispers in this segment
+      const whispersInSegment = whispers.filter(w => {
+        return w.position.y >= segmentY && w.position.y < segmentY + segmentHeight;
+      }).length;
+      
+      if (whispersInSegment > 0) {
+        const intensity = Math.min(whispersInSegment / 5, 1); // Max at 5 whispers
+        const segment = document.createElement('div');
+        segment.style.cssText = `
+          position: absolute;
+          left: 0;
+          top: ${segmentY}px;
+          width: 100%;
+          height: ${segmentHeight}px;
+          background: ${getHeatmapColor(intensity)};
+          opacity: ${0.2 + intensity * 0.3};
+          pointer-events: none;
+        `;
+        heatmapOverlay.appendChild(segment);
+      }
+    }
+    
+    document.body.appendChild(heatmapOverlay);
+    console.log('✅ Heatmap displayed with', whispers.length, 'whispers');
+  } catch (error) {
+    console.error('Error showing heatmap:', error);
+  }
+}
+
+function hideHeatmap() {
+  if (heatmapOverlay) {
+    heatmapOverlay.remove();
+    heatmapOverlay = null;
+  }
+}
+
+function getHeatmapColor(intensity) {
+  // Blue (low) to Red (high)
+  if (intensity < 0.33) {
+    return `rgba(100, 150, 255, ${intensity})`;
+  } else if (intensity < 0.66) {
+    return `rgba(255, 200, 100, ${intensity})`;
+  } else {
+    return `rgba(255, 100, 100, ${intensity})`;
   }
 }
