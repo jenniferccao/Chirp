@@ -586,54 +586,57 @@ function toggleAccessibilityToolbar() {
 // Setup keyboard shortcuts
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    // Alt key combinations
+    // Alt key combinations - use e.code for reliable detection across keyboard layouts
     if (e.altKey && !e.ctrlKey && !e.shiftKey) {
-      switch (e.key.toLowerCase()) {
-        case 'r':
-          e.preventDefault();
-          if (articleReader) {
-            articleReader.readArticle();
-            playSound('start');
+      const key = e.key.toLowerCase();
+      const code = e.code;
+      
+      // Check both e.key and e.code for compatibility
+      if (key === 'r' || code === 'KeyR') {
+        e.preventDefault();
+        console.log('Alt+R: Read article');
+        if (articleReader) {
+          articleReader.readArticle();
+          playSound('start');
+        }
+      }
+      else if (key === 's' || code === 'KeyS') {
+        e.preventDefault();
+        console.log('Alt+S: Read selection');
+        if (articleReader) {
+          articleReader.readSelection();
+          playSound('start');
+        }
+      }
+      else if (key === 'p' || code === 'KeyP') {
+        e.preventDefault();
+        console.log('Alt+P: Pause/Resume');
+        if (articleReader && articleReader.isReading) {
+          if (articleReader.isPaused) {
+            articleReader.resume();
+          } else {
+            articleReader.pause();
           }
-          break;
-        
-        case 's':
-          e.preventDefault();
-          if (articleReader) {
-            articleReader.readSelection();
-            playSound('start');
-          }
-          break;
-        
-        case 'p':
-          e.preventDefault();
-          if (articleReader && articleReader.isReading) {
-            if (articleReader.isPaused) {
-              articleReader.resume();
-            } else {
-              articleReader.pause();
-            }
-            playSound('click');
-          }
-          break;
-        
-        case 'x':
-          e.preventDefault();
-          if (articleReader) {
-            articleReader.stop();
-            playSound('stop');
-          }
-          break;
-        
-        case 'h':
-          e.preventDefault();
-          showKeyboardShortcuts();
-          break;
-        
-        case 't':
-          e.preventDefault();
-          toggleAccessibilityToolbar();
-          break;
+          playSound('click');
+        }
+      }
+      else if (key === 'x' || code === 'KeyX') {
+        e.preventDefault();
+        console.log('Alt+X: Stop');
+        if (articleReader) {
+          articleReader.stop();
+          playSound('stop');
+        }
+      }
+      else if (key === 'h' || code === 'KeyH') {
+        e.preventDefault();
+        console.log('Alt+H: Show shortcuts');
+        showKeyboardShortcuts();
+      }
+      else if (key === 't' || code === 'KeyT') {
+        e.preventDefault();
+        console.log('Alt+T: Toggle toolbar');
+        toggleAccessibilityToolbar();
       }
     }
   });

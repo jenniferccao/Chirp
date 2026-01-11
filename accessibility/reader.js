@@ -9,7 +9,24 @@ class ArticleReader {
     this.elevenLabsVoices = [];
     this.currentAudio = null;
     this.useElevenLabs = true; // Use ElevenLabs by default
+    this.ensureBrowserVoicesLoaded();
     this.loadElevenLabsVoices();
+  }
+
+  // Ensure browser voices are loaded
+  ensureBrowserVoicesLoaded() {
+    if (window.speechSynthesis) {
+      // Load voices immediately if available
+      let voices = window.speechSynthesis.getVoices();
+      
+      // If not loaded yet, wait for voiceschanged event
+      if (voices.length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+          voices = window.speechSynthesis.getVoices();
+          console.log('Browser voices loaded:', voices.length);
+        }, { once: true });
+      }
+    }
   }
 
   // Load ElevenLabs voices
@@ -19,6 +36,10 @@ class ArticleReader {
       if (response.success && response.voices) {
         this.elevenLabsVoices = response.voices;
         console.log('Loaded ElevenLabs voices:', this.elevenLabsVoices.length);
+        // If no ElevenLabs voices, use browser fallback
+        if (this.elevenLabsVoices.length === 0) {
+          this.useElevenLabs = false;
+        }
       }
     } catch (error) {
       console.error('Failed to load ElevenLabs voices:', error);
