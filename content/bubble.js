@@ -190,51 +190,42 @@ function createBubble(note) {
 
 function makeDraggable(bubble, note) {
   let isDragging = false;
-  let hasMoved = false;
-  let startX, startY, initialLeft, initialTop;
+  let offsetX, offsetY;
   
   bubble.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('delete-btn')) return;
     isDragging = true;
-    hasMoved = false;
-    startX = e.clientX;
-    startY = e.clientY;
-    initialLeft = bubble.offsetLeft;
-    initialTop = bubble.offsetTop;
+    
+    // Calculate offset from cursor to bubble's top-left corner
+    offsetX = e.clientX - bubble.offsetLeft;
+    offsetY = e.clientY - bubble.offsetTop;
+    
     bubble.style.cursor = 'grabbing';
+    bubble.classList.add('dragging');
     e.preventDefault(); // Prevent text selection
   });
   
   document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    // Position bubble so cursor stays at the same point within it
+    const newLeft = e.clientX - offsetX;
+    const newTop = e.clientY - offsetY;
     
-    // Only consider it a drag if moved more than 5 pixels
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-      hasMoved = true;
-      const newLeft = initialLeft + dx;
-      const newTop = initialTop + dy;
-      
-      bubble.style.left = `${newLeft}px`;
-      bubble.style.top = `${newTop}px`;
-    }
+    bubble.style.left = `${newLeft}px`;
+    bubble.style.top = `${newTop}px`;
   });
   
   document.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
       bubble.style.cursor = 'pointer';
+      bubble.classList.remove('dragging');
       
-      if (hasMoved) {
-        // Save new position only if actually moved
-        note.position.x = bubble.offsetLeft;
-        note.position.y = bubble.offsetTop;
-        updateNotePosition(note);
-      }
-      
-      hasMoved = false;
+      // Save new position
+      note.position.x = bubble.offsetLeft;
+      note.position.y = bubble.offsetTop;
+      updateNotePosition(note);
     }
   });
 }
@@ -586,54 +577,51 @@ function toggleAccessibilityToolbar() {
 // Setup keyboard shortcuts
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    // Alt key combinations
+    // Alt key combinations - use e.code for reliable detection across keyboard layouts
     if (e.altKey && !e.ctrlKey && !e.shiftKey) {
-      switch (e.key.toLowerCase()) {
-        case 'r':
-          e.preventDefault();
-          if (articleReader) {
-            articleReader.readArticle();
-            playSound('start');
+      const key = e.key.toLowerCase();
+      const code = e.code;
+      
+      // Check both e.key and e.code for compatibility
+      if (key === 'r' || code === 'KeyR') {
+        e.preventDefault();
+        if (articleReader) {
+          articleReader.readArticle();
+          playSound('start');
+        }
+      }
+      else if (key === 's' || code === 'KeyS') {
+        e.preventDefault();
+        if (articleReader) {
+          articleReader.readSelection();
+          playSound('start');
+        }
+      }
+      else if (key === 'p' || code === 'KeyP') {
+        e.preventDefault();
+        if (articleReader && articleReader.isReading) {
+          if (articleReader.isPaused) {
+            articleReader.resume();
+          } else {
+            articleReader.pause();
           }
-          break;
-        
-        case 's':
-          e.preventDefault();
-          if (articleReader) {
-            articleReader.readSelection();
-            playSound('start');
-          }
-          break;
-        
-        case 'p':
-          e.preventDefault();
-          if (articleReader && articleReader.isReading) {
-            if (articleReader.isPaused) {
-              articleReader.resume();
-            } else {
-              articleReader.pause();
-            }
-            playSound('click');
-          }
-          break;
-        
-        case 'x':
-          e.preventDefault();
-          if (articleReader) {
-            articleReader.stop();
-            playSound('stop');
-          }
-          break;
-        
-        case 'h':
-          e.preventDefault();
-          showKeyboardShortcuts();
-          break;
-        
-        case 't':
-          e.preventDefault();
-          toggleAccessibilityToolbar();
-          break;
+          playSound('click');
+        }
+      }
+      else if (key === 'x' || code === 'KeyX') {
+        e.preventDefault();
+        if (articleReader) {
+          articleReader.stop();
+          playSound('stop');
+        }
+      }
+      else if (key === 'h' || code === 'KeyH') {
+        e.preventDefault();
+        showKeyboardShortcuts();
+      }
+      else if (key === 't' || code === 'KeyT') {
+        e.preventDefault();
+        toggleAccessibilityToolbar();
       }
     }
   });

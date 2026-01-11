@@ -9,16 +9,35 @@ class ArticleReader {
     this.elevenLabsVoices = [];
     this.currentAudio = null;
     this.useElevenLabs = true; // Use ElevenLabs by default
+    this.ensureBrowserVoicesLoaded();
     this.loadElevenLabsVoices();
+  }
+
+  // Ensure browser voices are loaded
+  ensureBrowserVoicesLoaded() {
+    if (window.speechSynthesis) {
+      // Force load voices by calling getVoices() multiple times
+      window.speechSynthesis.getVoices();
+      
+      // Set up event listener for when voices load
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+          console.log('Browser voices loaded:', window.speechSynthesis.getVoices().length);
+        }, { once: true });
+      }
+    }
   }
 
   // Load ElevenLabs voices
   async loadElevenLabsVoices() {
     try {
       const response = await chrome.runtime.sendMessage({ action: 'getVoices' });
-      if (response.success && response.voices) {
+      if (response.success && response.voices && response.voices.length > 0) {
         this.elevenLabsVoices = response.voices;
         console.log('Loaded ElevenLabs voices:', this.elevenLabsVoices.length);
+      } else {
+        console.log('No ElevenLabs voices, using browser speech');
+        this.useElevenLabs = false;
       }
     } catch (error) {
       console.error('Failed to load ElevenLabs voices:', error);
@@ -197,6 +216,23 @@ class ArticleReader {
 
     if (!text) return;
 
+    // Force load voices
+    let voices = window.speechSynthesis.getVoices();
+    
+    // If no voices yet, try with a small delay
+    if (voices.length === 0) {
+      setTimeout(() => {
+        voices = window.speechSynthesis.getVoices();
+        this.createAndSpeakUtterance(text, voices);
+      }, 100);
+      return;
+    }
+    
+    this.createAndSpeakUtterance(text, voices);
+  }
+
+  // Helper to create and speak utterance
+  createAndSpeakUtterance(text, voices) {
     // Create utterance
     this.currentUtterance = new SpeechSynthesisUtterance(text);
     
@@ -206,7 +242,6 @@ class ArticleReader {
     this.currentUtterance.volume = 1.0;
 
     // Get best quality voice
-    const voices = window.speechSynthesis.getVoices();
     const selectedVoice = this.getBestVoice(voices);
     
     if (selectedVoice) {
