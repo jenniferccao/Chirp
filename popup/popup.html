@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sticky Whispers - AI Voice Notes</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="../styles/team-heatmap.css">
 </head>
 <body role="application" aria-label="Sticky Whispers Extension">
   <div class="container">
@@ -34,6 +35,7 @@
       <div class="tabs">
         <button class="tab-btn active" data-tab="record">🎙️ Record</button>
         <button class="tab-btn" data-tab="text">✍️ Text</button>
+        <button class="tab-btn" data-tab="teams">👥 Teams</button>
         <button class="tab-btn" data-tab="search">🔍 Search</button>
       </div>
 
@@ -137,12 +139,8 @@
           <textarea 
             id="textInput" 
             placeholder="Type your message here... (AI will speak it for you!)"
-            maxlength="500"
             rows="4"
           ></textarea>
-          <div class="char-count">
-            <span id="charCount">0</span>/500 characters
-          </div>
           
           <div class="voice-selector">
             <label>Choose Voice:</label>
@@ -166,6 +164,99 @@
           <div id="ttsPreview" class="preview" style="display: none;">
             <p class="preview-text">✨ Voice generated! Click anywhere on the page to place it.</p>
             <button id="cancelTtsBtn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teams Tab -->
+      <div class="tab-content" id="teamsTab" role="tabpanel" aria-labelledby="teams-tab">
+        <div class="team-profile-section">
+          <!-- User Profile -->
+          <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar">U</div>
+            <div class="profile-info">
+              <h3 id="profileUsername">Loading...</h3>
+              <span class="profile-id" id="profileId"></span>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="profile-stats">
+            <div class="stat-card">
+              <span class="stat-value" id="statWhispers">0</span>
+              <span class="stat-label">Total Whispers</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="statShared">0</span>
+              <span class="stat-label">Shared</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="statArticles">0</span>
+              <span class="stat-label">Articles Read</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="statTeamContrib">0</span>
+              <span class="stat-label">Team Contributions</span>
+            </div>
+          </div>
+
+          <!-- Heatmap Control -->
+          <div class="heatmap-control">
+            <div class="heatmap-control-header">
+              <h4>📊 Annotation Heatmap</h4>
+              <label class="heatmap-toggle-switch">
+                <input type="checkbox" id="heatmapToggle">
+                <span class="heatmap-slider"></span>
+              </label>
+            </div>
+            <div class="heatmap-mode-selector">
+              <button class="heatmap-mode-btn active" data-mode="community">🌍 Community</button>
+              <button class="heatmap-mode-btn" data-mode="team">👥 Team</button>
+            </div>
+          </div>
+
+          <!-- Team Management -->
+          <div class="team-section">
+            <div class="team-header">
+              <h4>Your Teams</h4>
+              <div class="team-actions">
+                <button class="btn-team" id="createTeamBtn">+ Create</button>
+                <button class="btn-team" id="joinTeamBtn">Join</button>
+              </div>
+            </div>
+
+            <!-- Create Team Form -->
+            <div class="team-input-form" id="createTeamForm" style="display: none;">
+              <input type="text" id="teamNameInput" placeholder="Enter team name..." maxlength="30">
+              <button id="confirmCreateTeam">Create Team</button>
+            </div>
+
+            <!-- Join Team Form -->
+            <div class="team-input-form" id="joinTeamForm" style="display: none;">
+              <input type="text" id="teamCodeInput" placeholder="Enter team code..." maxlength="6" style="text-transform: uppercase;">
+              <button id="confirmJoinTeam">Join Team</button>
+            </div>
+
+            <!-- Team List -->
+            <div class="team-list" id="teamList">
+              <p class="help-text">No teams yet. Create or join a team to collaborate!</p>
+            </div>
+            
+            <!-- Demo Data Button -->
+            <button class="btn-primary" id="loadDemoDataBtn" style="margin-top: 15px; width: 100%;">
+              🎭 Load Demo Bubbles (Carnegie Article)
+            </button>
+          </div>
+
+          <!-- Team Whispers on Current Page -->
+          <div class="team-whispers-section" id="teamWhispersSection" style="display: none;">
+            <div class="team-whispers-header">
+              <h4>📍 Team Annotations on This Page</h4>
+              <span class="team-whispers-count" id="teamWhispersCount">0 annotations</span>
+            </div>
+            <div class="team-whispers-list" id="teamWhispersList">
+              <p class="help-text">No team annotations on this page yet.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -206,6 +297,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4/dist/audiomotion-analyzer.min.js"></script>
+  <script src="../services/team-service.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
