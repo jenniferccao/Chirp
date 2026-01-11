@@ -6,13 +6,11 @@ let selectedTextContext = null;
 let highlightedElements = [];
 let articleReader = null;
 let accessibilityToolbarVisible = false;
-let heatmapService = null;
 
 // Load and display bubbles on page load
 window.addEventListener('load', () => {
   loadBubbles();
   initializeAccessibility();
-  heatmapService = new HeatmapService();
 });
 
 // Listen for messages from popup
@@ -38,12 +36,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     scrollToWhisperById(request.noteId);
   } else if (request.action === 'highlightWhisperText') {
     highlightAllWhisperTexts();
-  } else if (request.action === 'toggleHeatmap') {
-    if (heatmapService) {
-      heatmapService.toggleHeatmap(window.location.href, request.mode, request.teamCode);
-    }
-    sendResponse({ success: true });
-    return true;
   }
 });
 
@@ -135,13 +127,9 @@ async function placeNote(x, y) {
 
 function loadBubbles() {
   const url = window.location.hostname + window.location.pathname;
-  const fullUrl = window.location.href;
   
-  // Try both URL formats (for backwards compatibility)
-  chrome.storage.local.get([url, fullUrl], (result) => {
-    const notes = result[url] || result[fullUrl] || [];
-    console.log('🎭 Loading bubbles for:', url);
-    console.log('📦 Found notes:', notes.length);
+  chrome.storage.local.get([url], (result) => {
+    const notes = result[url] || [];
     notes.forEach(note => createBubble(note));
   });
 }
@@ -174,20 +162,7 @@ function createBubble(note) {
   if (note.transcript) {
     const transcriptTooltip = document.createElement('div');
     transcriptTooltip.className = 'bubble-transcript-tooltip';
-    
-    // Add username if available (for team whispers)
-    if (note.sharedByUsername) {
-      const userLabel = document.createElement('div');
-      userLabel.className = 'bubble-user-label';
-      userLabel.textContent = `👤 ${note.sharedByUsername}`;
-      transcriptTooltip.appendChild(userLabel);
-    }
-    
-    const transcriptText = document.createElement('div');
-    transcriptText.className = 'bubble-transcript-text';
-    transcriptText.textContent = note.transcript;
-    transcriptTooltip.appendChild(transcriptText);
-    
+    transcriptTooltip.textContent = note.transcript;
     bubble.appendChild(transcriptTooltip);
   }
   
@@ -215,57 +190,53 @@ function createBubble(note) {
 
 function makeDraggable(bubble, note) {
   let isDragging = false;
-  let grabOffsetX = 0;
-  let grabOffsetY = 0;
-
-  const onPointerDown = (e) => {
+  let hasMoved = false;
+  let startX, startY, initialLeft, initialTop;
+  
+  bubble.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('delete-btn')) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Only react to primary button
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-
     isDragging = true;
-
-    // Capture pointer so moves are delivered even off the bubble
-    try { bubble.setPointerCapture(e.pointerId); } catch (_) {}
-
-    // Calculate offset between cursor and bubble's top-left
-    grabOffsetX = e.pageX - bubble.offsetLeft;
-    grabOffsetY = e.pageY - bubble.offsetTop;
-
-    bubble.classList.add('dragging');
+    hasMoved = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    initialLeft = bubble.offsetLeft;
+    initialTop = bubble.offsetTop;
     bubble.style.cursor = 'grabbing';
-  };
-
-  const onPointerMove = (e) => {
+    e.preventDefault(); // Prevent text selection
+  });
+  
+  document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-    e.preventDefault();
-
-    const newLeft = e.pageX - grabOffsetX;
-    const newTop = e.pageY - grabOffsetY;
-
-    bubble.style.left = `${newLeft}px`;
-    bubble.style.top = `${newTop}px`;
-  };
-
-  const endDrag = () => {
-    if (!isDragging) return;
-    isDragging = false;
-    bubble.classList.remove('dragging');
-    bubble.style.cursor = 'pointer';
-
-    // Save new position
-    note.position.x = bubble.offsetLeft;
-    note.position.y = bubble.offsetTop;
-    updateNotePosition(note);
-  };
-
-  bubble.addEventListener('pointerdown', onPointerDown);
-  bubble.addEventListener('pointermove', onPointerMove);
-  bubble.addEventListener('pointerup', endDrag);
-  bubble.addEventListener('pointercancel', endDrag);
+    
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    // Only consider it a drag if moved more than 5 pixels
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      hasMoved = true;
+      const newLeft = initialLeft + dx;
+      const newTop = initialTop + dy;
+      
+      bubble.style.left = `${newLeft}px`;
+      bubble.style.top = `${newTop}px`;
+    }
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      bubble.style.cursor = 'pointer';
+      
+      if (hasMoved) {
+        // Save new position only if actually moved
+        note.position.x = bubble.offsetLeft;
+        note.position.y = bubble.offsetTop;
+        updateNotePosition(note);
+      }
+      
+      hasMoved = false;
+    }
+  });
 }
 
 function updateNotePosition(note) {
@@ -281,7 +252,7 @@ function updateNotePosition(note) {
   });
 }
 
-async function playNote(note) {
+function playNote(note) {
   const bubble = document.querySelector(`[data-note-id="${note.id}"]`);
   if (!bubble) return;
   
@@ -294,51 +265,8 @@ async function playNote(note) {
   // Add playing animation
   bubble.classList.add('playing');
   
-  // If no audio data, generate it on-demand using transcript
-  let audioData = note.audioUrl || note.audioData;
-  
-  if (!audioData && note.transcript) {
-    console.log('🎙️ Generating audio on-demand for:', note.transcript);
-    try {
-      // Request TTS from background script
-      const response = await chrome.runtime.sendMessage({
-        action: 'textToSpeech',
-        text: note.transcript,
-        voiceId: note.voiceId || null // Use default voice if not specified
-      });
-      
-      if (response.success && response.audioData) {
-        audioData = response.audioData;
-        
-        // Save the generated audio for future use
-        const url = window.location.hostname + window.location.pathname;
-        const result = await chrome.storage.local.get([url]);
-        const notes = result[url] || [];
-        const noteIndex = notes.findIndex(n => n.id === note.id);
-        if (noteIndex !== -1) {
-          notes[noteIndex].audioUrl = audioData;
-          await chrome.storage.local.set({ [url]: notes });
-        }
-      } else {
-        console.error('Failed to generate audio:', response.error);
-        bubble.classList.remove('playing');
-        return;
-      }
-    } catch (error) {
-      console.error('Error generating audio:', error);
-      bubble.classList.remove('playing');
-      return;
-    }
-  }
-  
-  if (!audioData) {
-    console.error('No audio data available');
-    bubble.classList.remove('playing');
-    return;
-  }
-  
   // Create and play audio
-  const audio = new Audio(audioData);
+  const audio = new Audio(note.audioData);
   currentlyPlaying = audio;
   
   audio.play();

@@ -82,7 +82,6 @@ class ElevenLabsService {
 
   async getVoices() {
     try {
-      console.log('🎙️ ElevenLabsService: Fetching voices with API key:', this.apiKey ? 'Present' : 'Missing');
       const response = await fetch(`${this.baseUrl}/voices`, {
         method: 'GET',
         headers: {
@@ -90,19 +89,14 @@ class ElevenLabsService {
         }
       });
 
-      console.log('🎙️ ElevenLabsService: Response status:', response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ ElevenLabsService: Failed to fetch voices:', errorText);
-        throw new Error('Failed to fetch voices: ' + response.status);
+        throw new Error('Failed to fetch voices');
       }
 
       const data = await response.json();
-      console.log('✅ ElevenLabsService: Retrieved', data.voices?.length || 0, 'voices');
       return data.voices;
     } catch (error) {
-      console.error('❌ ElevenLabsService: Error fetching voices:', error);
+      console.error('Error fetching voices:', error);
       return [];
     }
   }
@@ -145,7 +139,7 @@ class ElevenLabsService {
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('🫧 Sticky Whispers installed!');
+  console.log('Sticky Whispers installed! 🫧');
   
   // Auto-initialize API key
   const HARDCODED_API_KEY = 'sk_371dd1ebfd6b3123e8674dee136c2792744760be31db90db';
@@ -153,17 +147,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   
   if (!elevenLabsApiKey) {
     await chrome.storage.local.set({ elevenLabsApiKey: HARDCODED_API_KEY });
-    console.log('✅ API key auto-initialized');
-  } else {
-    console.log('✅ API key already exists');
+    console.log('API key auto-initialized');
   }
-  
-  // Test the API key immediately
-  console.log('🧪 Testing ElevenLabs API...');
-  const testService = new ElevenLabsService(elevenLabsApiKey || HARDCODED_API_KEY);
-  const testVoices = await testService.getVoices();
-  console.log('🧪 Test result:', testVoices?.length || 0, 'voices available');
-});
   
   // Create context menu for "Read Aloud"
   chrome.contextMenus.create({
@@ -207,10 +192,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
 
         case 'textToSpeech':
-          console.log('🔊 Background: TTS request for', request.text?.length || 0, 'chars with voice:', request.voiceId);
           const ttsResult = await elevenlabs.textToSpeech(request.text, request.voiceId);
           const ttsBase64 = await blobToBase64(ttsResult.audio);
-          console.log('✅ Background: TTS successful, audio size:', ttsBase64?.length || 0);
           sendResponse({ 
             success: true, 
             audioData: ttsBase64,
@@ -220,20 +203,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
 
         case 'getVoices':
-          console.log('🎙️ Background: Getting ElevenLabs voices...');
-          try {
-            const voices = await elevenlabs.getVoices();
-            console.log('🎙️ Background: Retrieved', voices?.length || 0, 'voices');
-            if (!voices || voices.length === 0) {
-              console.warn('⚠️ Background: No voices returned from API');
-              sendResponse({ success: false, error: 'No voices available', voices: [] });
-            } else {
-              sendResponse({ success: true, voices: voices });
-            }
-          } catch (voiceError) {
-            console.error('❌ Background: Error getting voices:', voiceError);
-            sendResponse({ success: false, error: voiceError.message, voices: [] });
-          }
+          const voices = await elevenlabs.getVoices();
+          sendResponse({ success: true, voices: voices });
           break;
 
         case 'getUserInfo':

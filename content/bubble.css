@@ -117,32 +117,18 @@
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.9);
   color: white;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 8px;
   font-size: 12px;
-  white-space: normal;
-  max-width: 300px;
+  white-space: nowrap;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s;
   z-index: 10;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.bubble-user-label {
-  font-weight: 600;
-  color: #d8769e;
-  margin-bottom: 6px;
-  font-size: 11px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding-bottom: 4px;
-}
-
-.bubble-transcript-text {
-  line-height: 1.4;
-  max-height: 100px;
-  overflow-y: auto;
 }
 
 .whisper-bubble:hover .bubble-transcript-tooltip {

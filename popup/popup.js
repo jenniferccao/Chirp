@@ -25,19 +25,11 @@ let isPlaying = false;
 let playbackStartTime = 0;
 let playbackAnimationId = null;
 
-// Team and heatmap variables
-let teamService = new TeamService();
-let currentTeamCode = null;
-let heatmapEnabled = false;
-let heatmapMode = 'community';
-
 // Initialize on load
 document.addEventListener('DOMContentLoaded', async () => {
   await initializeApiKey();
   await checkApiKey();
   setupEventListeners();
-  await loadUserProfile();
-  await loadTeams();
 });
 
 // Auto-initialize API key from config
@@ -54,9 +46,6 @@ async function initializeApiKey() {
 
 // Check for API key and validate it
 async function checkApiKey() {
-  // Wait a moment for background script to initialize the hardcoded key
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
   const result = await chrome.storage.local.get(['elevenLabsApiKey']);
   
   if (result.elevenLabsApiKey) {
@@ -65,13 +54,7 @@ async function checkApiKey() {
     loadNotes();
     loadUserInfo();
   } else {
-    // If still no key after waiting, initialize it here
-    const HARDCODED_API_KEY = 'sk_371dd1ebfd6b3123e8674dee136c2792744760be31db90db';
-    await chrome.storage.local.set({ elevenLabsApiKey: HARDCODED_API_KEY });
-    console.log('✅ API key initialized from popup');
-    showMainSection();
-    loadNotes();
-    loadUserInfo();
+    showApiKeySection();
   }
 }
 
@@ -100,7 +83,7 @@ function setupEventListeners() {
   
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', async () => await switchTab(btn.dataset.tab));
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
 // Color picker
@@ -119,6 +102,7 @@ document.querySelectorAll('.color-option').forEach(option => {
   document.getElementById('resetCropBtn').addEventListener('click', resetCrop);
   
   // Text-to-Speech
+  document.getElementById('textInput').addEventListener('input', updateCharCount);
   document.getElementById('generateSpeechBtn').addEventListener('click', generateSpeech);
   document.getElementById('cancelTtsBtn').addEventListener('click', cancelTts);
   document.getElementById('refreshVoices').addEventListener('click', loadVoices);
@@ -128,21 +112,6 @@ document.querySelectorAll('.color-option').forEach(option => {
   
   // Export
   document.getElementById('exportBtn').addEventListener('click', exportNotes);
-  
-  // Team Management
-  document.getElementById('createTeamBtn').addEventListener('click', showCreateTeamForm);
-  document.getElementById('joinTeamBtn').addEventListener('click', showJoinTeamForm);
-  document.getElementById('confirmCreateTeam').addEventListener('click', createTeam);
-  document.getElementById('confirmJoinTeam').addEventListener('click', joinTeam);
-  
-  // Load Demo Data Button
-  document.getElementById('loadDemoDataBtn').addEventListener('click', loadDemoBubblesForCarnegie);
-  
-  // Heatmap
-  document.getElementById('heatmapToggle').addEventListener('change', toggleHeatmap);
-  document.querySelectorAll('.heatmap-mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => switchHeatmapMode(btn.dataset.mode));
-  });
   
   // Tips close button
   const closeTipsBtn = document.getElementById('closeTips');
@@ -189,7 +158,7 @@ async function saveApiKey() {
       
       if (response && response.success && response.valid) {
         showStatus('✓ API key validated successfully!', 'success');
-  } else {
+      } else {
         showStatus('✓ API key saved! (Validation skipped)', 'success');
       }
     } catch (validationError) {
@@ -211,7 +180,7 @@ async function saveApiKey() {
 }
 
 // Tab Management
-async function switchTab(tabName) {
+function switchTab(tabName) {
   // Update buttons
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
@@ -222,11 +191,6 @@ async function switchTab(tabName) {
     content.classList.remove('active');
   });
   document.getElementById(`${tabName}Tab`).classList.add('active');
-  
-  // Load team whispers when switching to teams tab
-  if (tabName === 'teams') {
-    await loadTeamWhispersForCurrentPage();
-  }
 }
 
 // Recording Functions
@@ -501,7 +465,7 @@ async function saveAudio() {
       const audioData = reader.result;
       
       // Send to content script to enable placement
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       if (!tab || !tab.id) {
         console.error('No active tab found');
@@ -509,8 +473,8 @@ async function saveAudio() {
         return;
       }
       
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'enablePlacement',
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'enablePlacement',
         audioData: audioData,
         transcript: currentTranscript || '',
         color: selectedColor,
@@ -533,6 +497,11 @@ async function saveAudio() {
 }
 
 // Text-to-Speech Functions
+function updateCharCount() {
+  const text = document.getElementById('textInput').value;
+  document.getElementById('charCount').textContent = text.length;
+}
+
 async function generateSpeech() {
   const text = document.getElementById('textInput').value.trim();
   
@@ -639,11 +608,7 @@ async function searchWhispers() {
     
     // Search through all URLs
     for (const [url, notes] of Object.entries(allData)) {
-      // Skip non-whisper data
-      if (url === 'elevenLabsApiKey' || url === 'userProfile' || url === 'teams' || url === 'currentTeamCode') continue;
-      
-      // Ensure notes is an array
-      if (!Array.isArray(notes)) continue;
+      if (url === 'elevenLabsApiKey') continue;
       
       notes.forEach((note, index) => {
         if (note.transcript) {
@@ -883,24 +848,8 @@ async function loadUserInfo() {
     
     if (response.success && response.userInfo) {
       const info = response.userInfo;
-      const used = info.character_count || 0;
-      const limit = info.character_limit || 0;
-      const remaining = limit - used;
-      
-      let displayText = `${used.toLocaleString()} / ${limit.toLocaleString()} characters used`;
-      
-      // Add warning if low on credits
-      if (remaining < 1000) {
-        displayText += ' ⚠️ LOW CREDITS!';
-        document.getElementById('userInfoText').style.color = '#ff4444';
-      } else if (remaining < 5000) {
-        displayText += ' ⚠️';
-        document.getElementById('userInfoText').style.color = '#ff9900';
-      } else {
-        document.getElementById('userInfoText').style.color = '#666';
-      }
-      
-      document.getElementById('userInfoText').textContent = displayText;
+      document.getElementById('userInfoText').textContent = 
+        `${info.character_count || 0} / ${info.character_limit || 0} characters used`;
     }
   } catch (error) {
     console.error('Error loading user info:', error);
@@ -1278,824 +1227,6 @@ function audioBufferToWav(buffer) {
   function setUint32(data) {
     view.setUint32(pos, data, true);
     pos += 4;
-  }
-}
-
-// Team and Heatmap Functions for Popup
-
-// Load user profile and stats
-async function loadUserProfile() {
-  try {
-    // Check if we should load demo data
-    const result = await chrome.storage.local.get(['userProfile', 'demoDataLoaded']);
-    
-    // Auto-load demo data on first run
-    if (!result.userProfile && !result.demoDataLoaded) {
-      console.log('🎭 Loading demo data for first time...');
-      await loadDemoData();
-    }
-    
-    const profile = await teamService.getUserProfile();
-    
-    // Update UI
-    document.getElementById('profileUsername').textContent = profile.username;
-    document.getElementById('profileId').textContent = `ID: ${profile.id.substring(0, 12)}...`;
-    document.getElementById('profileAvatar').textContent = profile.username.charAt(0).toUpperCase();
-    
-    // Update stats
-    document.getElementById('statWhispers').textContent = profile.stats.totalWhispers;
-    document.getElementById('statShared').textContent = profile.stats.sharedWhispers;
-    document.getElementById('statArticles').textContent = profile.stats.articlesRead;
-    document.getElementById('statTeamContrib').textContent = profile.stats.teamContributions;
-  } catch (error) {
-    console.error('Error loading profile:', error);
-  }
-}
-
-// Load demo data automatically
-async function loadDemoData() {
-  try {
-    console.log('🎭 Generating demo data...');
-    
-    // 1. Create user profile with stats
-    const userProfile = {
-      id: 'user_demo_12345',
-      username: 'Sarah Chen',
-      createdAt: new Date('2024-01-01').toISOString(),
-      stats: {
-        totalWhispers: 47,
-        sharedWhispers: 23,
-        articlesRead: 15,
-        teamContributions: 31
-      },
-      teams: ['ECON42', 'STUDY1']
-    };
-    
-    await chrome.storage.local.set({ userProfile });
-    console.log('✅ User profile created:', userProfile.username);
-    
-    // 2. Create demo teams
-    const teams = {
-      'ECON42': {
-        code: 'ECON42',
-        name: 'Economics Study Group',
-        createdBy: 'user_demo_12345',
-        createdAt: new Date('2024-01-05').toISOString(),
-        members: ['user_demo_12345', 'user_alex_789', 'user_maria_456', 'user_james_321'],
-        whispers: []
-      },
-      'STUDY1': {
-        code: 'STUDY1',
-        name: 'Accessibility Research Team',
-        createdBy: 'user_maria_456',
-        createdAt: new Date('2024-01-10').toISOString(),
-        members: ['user_demo_12345', 'user_maria_456', 'user_priya_654'],
-        whispers: []
-      }
-    };
-    
-    // 3. Create demo whispers for the Carnegie article
-    const articleUrl = 'https://carnegieendowment.org/china-financial-markets/2023/12/what-will-it-take-for-chinas-gdp-to-grow-at-4-5-percent-over-the-next-decade?lang=en';
-    
-    const demoWhispers = [
-      {
-        id: 'whisper_1',
-        audioData: null,
-        transcript: "This is a key point about China's investment share of GDP",
-        selectedText: "China, however, is a huge outlier. It currently invests 42–44 percent of its GDP.",
-        color: 'pink',
-        position: { x: 300, y: 500 },
-        timestamp: new Date('2024-01-15T10:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_alex_789',
-        sharedByUsername: 'Alex Kumar',
-        sharedAt: new Date('2024-01-15T10:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_2',
-        audioData: null,
-        transcript: "Wait, this seems confusing. Need to review this section again.",
-        selectedText: "if China maintained annual GDP growth rates of 4–5 percent",
-        color: 'lavender',
-        position: { x: 320, y: 800 },
-        timestamp: new Date('2024-01-15T11:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_maria_456',
-        sharedByUsername: 'Maria Rodriguez',
-        sharedAt: new Date('2024-01-15T11:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_3',
-        audioData: null,
-        transcript: "Important statistic for our presentation!",
-        selectedText: "China comprises only 13 percent of global consumption and an astonishing 32 percent of global investment",
-        color: 'mint',
-        position: { x: 310, y: 650 },
-        timestamp: new Date('2024-01-15T11:15:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_james_321',
-        sharedByUsername: 'James Wilson',
-        sharedAt: new Date('2024-01-15T11:15:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_4',
-        audioData: null,
-        transcript: "This contradicts what we learned in class",
-        selectedText: "if China maintained annual GDP growth rates of 4–5 percent",
-        color: 'peach',
-        position: { x: 315, y: 800 },
-        timestamp: new Date('2024-01-15T12:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_priya_654',
-        sharedByUsername: 'Priya Patel',
-        sharedAt: new Date('2024-01-15T12:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_5',
-        audioData: null,
-        transcript: "Great explanation here",
-        selectedText: "The Arithmetic of Investment-Driven GDP Growth",
-        color: 'sky',
-        position: { x: 300, y: 400 },
-        timestamp: new Date('2024-01-15T12:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_demo_12345',
-        sharedByUsername: 'Sarah Chen',
-        sharedAt: new Date('2024-01-15T12:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_6',
-        audioData: null,
-        transcript: "Most confusing part",
-        selectedText: "if China maintained annual GDP growth rates of 4–5 percent",
-        color: 'pink',
-        position: { x: 325, y: 800 },
-        timestamp: new Date('2024-01-15T13:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_alex_789',
-        sharedByUsername: 'Alex Kumar',
-        sharedAt: new Date('2024-01-15T13:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_7',
-        audioData: null,
-        transcript: "Compare with World Bank data",
-        selectedText: "Globally, according to the World Bank, investment represents on average 25 percent",
-        color: 'lavender',
-        position: { x: 305, y: 550 },
-        timestamp: new Date('2024-01-15T13:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_maria_456',
-        sharedByUsername: 'Maria Rodriguez',
-        sharedAt: new Date('2024-01-15T13:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_8',
-        audioData: null,
-        transcript: "This explains why China is different",
-        selectedText: "China, however, is a huge outlier. It currently invests 42–44 percent of its GDP.",
-        color: 'mint',
-        position: { x: 295, y: 500 },
-        timestamp: new Date('2024-01-15T14:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_james_321',
-        sharedByUsername: 'James Wilson',
-        sharedAt: new Date('2024-01-15T14:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_9',
-        audioData: null,
-        transcript: "Key takeaway for exam",
-        selectedText: "China comprises only 13 percent of global consumption and an astonishing 32 percent of global investment",
-        color: 'peach',
-        position: { x: 315, y: 650 },
-        timestamp: new Date('2024-01-15T14:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_priya_654',
-        sharedByUsername: 'Priya Patel',
-        sharedAt: new Date('2024-01-15T14:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_10',
-        audioData: null,
-        transcript: "Really struggling here",
-        selectedText: "if China maintained annual GDP growth rates of 4–5 percent",
-        color: 'sky',
-        position: { x: 330, y: 800 },
-        timestamp: new Date('2024-01-15T15:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_alex_789',
-        sharedByUsername: 'Alex Kumar',
-        sharedAt: new Date('2024-01-15T15:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_11',
-        audioData: null,
-        transcript: "Most important statistic",
-        selectedText: "China comprises only 13 percent of global consumption and an astonishing 32 percent of global investment",
-        color: 'pink',
-        position: { x: 308, y: 650 },
-        timestamp: new Date('2024-01-15T15:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_maria_456',
-        sharedByUsername: 'Maria Rodriguez',
-        sharedAt: new Date('2024-01-15T15:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_12',
-        audioData: null,
-        transcript: "Professor mentioned this",
-        selectedText: "China, however, is a huge outlier. It currently invests 42–44 percent of its GDP.",
-        color: 'lavender',
-        position: { x: 305, y: 500 },
-        timestamp: new Date('2024-01-15T16:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_james_321',
-        sharedByUsername: 'James Wilson',
-        sharedAt: new Date('2024-01-15T16:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_13',
-        audioData: null,
-        transcript: "Need help understanding",
-        selectedText: "if China maintained annual GDP growth rates of 4–5 percent",
-        color: 'mint',
-        position: { x: 318, y: 800 },
-        timestamp: new Date('2024-01-15T16:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_priya_654',
-        sharedByUsername: 'Priya Patel',
-        sharedAt: new Date('2024-01-15T16:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_14',
-        audioData: null,
-        transcript: "Critical section",
-        selectedText: "if China maintained annual GDP growth rates of 4–5 percent",
-        color: 'peach',
-        position: { x: 312, y: 800 },
-        timestamp: new Date('2024-01-15T17:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_demo_12345',
-        sharedByUsername: 'Sarah Chen',
-        sharedAt: new Date('2024-01-15T17:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'whisper_15',
-        audioData: null,
-        transcript: "Compare with Japan's history",
-        selectedText: "China comprises only 13 percent of global consumption and an astonishing 32 percent of global investment",
-        color: 'sky',
-        position: { x: 318, y: 650 },
-        timestamp: new Date('2024-01-15T17:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_alex_789',
-        sharedByUsername: 'Alex Kumar',
-        sharedAt: new Date('2024-01-15T17:30:00').toISOString(),
-        teamCode: 'ECON42'
-      }
-    ];
-    
-    // Add whispers to teams
-    teams['ECON42'].whispers = demoWhispers;
-    await chrome.storage.local.set({ teams });
-    await chrome.storage.local.set({ currentTeamCode: 'ECON42' });
-    
-    // Also save as regular whispers for community heatmap
-    await chrome.storage.local.set({ [articleUrl]: demoWhispers });
-    
-    // Mark demo data as loaded
-    await chrome.storage.local.set({ demoDataLoaded: true });
-    
-    console.log('✅ Demo data loaded successfully!');
-    console.log('📊 15 annotations created on Carnegie article');
-    console.log('👥 Teams: ECON42 (4 members), STUDY1 (3 members)');
-    console.log('📈 Stats: 47 whispers, 23 shared, 15 articles, 31 contributions');
-  } catch (error) {
-    console.error('Error loading demo data:', error);
-  }
-}
-
-// Load teams
-async function loadTeams() {
-  try {
-    const teams = await teamService.getUserTeams();
-    const teamList = document.getElementById('teamList');
-    
-    if (teams.length === 0) {
-      teamList.innerHTML = '<p class="help-text">No teams yet. Create or join a team to collaborate!</p>';
-      return;
-    }
-    
-    const currentTeam = await teamService.getCurrentTeam();
-    
-    teamList.innerHTML = teams.map(team => `
-      <div class="team-card ${currentTeam && currentTeam.code === team.code ? 'active' : ''}" data-code="${team.code}">
-        <div class="team-card-header">
-          <div class="team-card-info">
-            <span class="team-name">${team.name}</span>
-            <span class="team-code">${team.code}</span>
-          </div>
-          <button class="team-delete-btn" data-code="${team.code}" title="Leave team" aria-label="Leave team ${team.name}">
-            🗑️
-          </button>
-        </div>
-        <div class="team-meta">
-          ${team.members.length} member${team.members.length > 1 ? 's' : ''} • ${team.whispers.length} whisper${team.whispers.length > 1 ? 's' : ''}
-        </div>
-      </div>
-    `).join('');
-    
-    // Add click handlers for team cards
-    document.querySelectorAll('.team-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        // Don't activate team if clicking delete button
-        if (!e.target.classList.contains('team-delete-btn')) {
-          setActiveTeam(card.dataset.code);
-        }
-      });
-    });
-    
-    // Add delete button handlers
-    document.querySelectorAll('.team-delete-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation(); // Prevent team activation
-        const teamCode = btn.dataset.code;
-        const team = teams.find(t => t.code === teamCode);
-        
-        if (confirm(`Leave team "${team.name}"? You can rejoin later with the code ${teamCode}.`)) {
-          await leaveTeam(teamCode);
-        }
-      });
-    });
-  } catch (error) {
-    console.error('Error loading teams:', error);
-  }
-}
-
-// Show create team form
-function showCreateTeamForm() {
-  const createForm = document.getElementById('createTeamForm');
-  const joinForm = document.getElementById('joinTeamForm');
-  
-  if (createForm.style.display === 'none') {
-    createForm.style.display = 'flex';
-    joinForm.style.display = 'none';
-    document.getElementById('teamNameInput').focus();
-  } else {
-    createForm.style.display = 'none';
-  }
-}
-
-// Show join team form
-function showJoinTeamForm() {
-  const createForm = document.getElementById('createTeamForm');
-  const joinForm = document.getElementById('joinTeamForm');
-  
-  if (joinForm.style.display === 'none') {
-    joinForm.style.display = 'flex';
-    createForm.style.display = 'none';
-    document.getElementById('teamCodeInput').focus();
-  } else {
-    joinForm.style.display = 'none';
-  }
-}
-
-// Create team
-async function createTeam() {
-  const teamName = document.getElementById('teamNameInput').value.trim();
-  
-  if (!teamName) {
-    alert('Please enter a team name');
-    return;
-  }
-  
-  try {
-    const team = await teamService.createTeam(teamName);
-    
-    // Show success message
-    alert(`Team created! Share this code with your team: ${team.code}`);
-    
-    // Reset form
-    document.getElementById('teamNameInput').value = '';
-    document.getElementById('createTeamForm').style.display = 'none';
-    
-    // Reload teams
-    await loadTeams();
-    await loadUserProfile();
-  } catch (error) {
-    console.error('Error creating team:', error);
-    alert('Error creating team. Please try again.');
-  }
-}
-
-// Join team
-async function joinTeam() {
-  const teamCode = document.getElementById('teamCodeInput').value.trim().toUpperCase();
-  
-  if (!teamCode || teamCode.length !== 6) {
-    alert('Please enter a valid 6-character team code');
-    return;
-  }
-  
-  try {
-    const team = await teamService.joinTeam(teamCode);
-    
-    // Show success message
-    alert(`Successfully joined team: ${team.name}`);
-    
-    // Reset form
-    document.getElementById('teamCodeInput').value = '';
-    document.getElementById('joinTeamForm').style.display = 'none';
-    
-    // Reload teams
-    await loadTeams();
-    await loadUserProfile();
-  } catch (error) {
-    console.error('Error joining team:', error);
-    alert('Team not found. Please check the code and try again.');
-  }
-}
-
-// Leave team
-async function leaveTeam(teamCode) {
-  try {
-    await teamService.leaveTeam(teamCode);
-    
-    // Reload teams and profile
-    await loadTeams();
-    await loadUserProfile();
-    
-    // Show success message
-    console.log('Successfully left team');
-  } catch (error) {
-    console.error('Error leaving team:', error);
-    alert('Failed to leave team. Please try again.');
-  }
-}
-
-// Set active team
-async function setActiveTeam(teamCode) {
-  try {
-    await teamService.setActiveTeam(teamCode);
-    currentTeamCode = teamCode;
-    
-    // Update UI
-    await loadTeams();
-    await loadTeamWhispersForCurrentPage();
-    
-    // If heatmap is enabled and in team mode, refresh it
-    if (heatmapEnabled && heatmapMode === 'team') {
-      await toggleHeatmap();
-      await toggleHeatmap();
-    }
-  } catch (error) {
-    console.error('Error setting active team:', error);
-  }
-}
-
-// Load team whispers for the current page
-async function loadTeamWhispersForCurrentPage() {
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) return;
-    
-    const currentTeam = await teamService.getCurrentTeam();
-    if (!currentTeam) {
-      document.getElementById('teamWhispersSection').style.display = 'none';
-      return;
-    }
-    
-    // Get team whispers for this page
-    const teamWhispers = await teamService.getTeamWhispersForPage(tab.url, currentTeam.code);
-    
-    const section = document.getElementById('teamWhispersSection');
-    const list = document.getElementById('teamWhispersList');
-    const count = document.getElementById('teamWhispersCount');
-    
-    if (teamWhispers.length === 0) {
-      section.style.display = 'block';
-      list.innerHTML = '<p class="help-text">No team annotations on this page yet.</p>';
-      count.textContent = '0 annotations';
-      return;
-    }
-    
-    section.style.display = 'block';
-    count.textContent = `${teamWhispers.length} annotation${teamWhispers.length > 1 ? 's' : ''}`;
-    
-    list.innerHTML = teamWhispers.map(whisper => {
-      const date = new Date(whisper.sharedAt || whisper.timestamp);
-      const timeAgo = getTimeAgo(date);
-      
-      return `
-        <div class="team-whisper-item" data-whisper-id="${whisper.id}">
-          <div class="team-whisper-header">
-            <span class="team-whisper-user">👤 ${whisper.sharedByUsername || 'Team Member'}</span>
-            <span class="team-whisper-time">${timeAgo}</span>
-          </div>
-          <div class="team-whisper-transcript">
-            "${whisper.transcript || 'No transcription available'}"
-          </div>
-          <div class="team-whisper-actions">
-            <button class="btn-jump-to" data-whisper-id="${whisper.id}">
-              📍 Jump to Annotation
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-    // Add click handlers
-    list.querySelectorAll('.btn-jump-to').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const whisperId = btn.dataset.whisperId;
-        
-        // Send message to content script to scroll to whisper
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'scrollToWhisperById',
-          whisperId: whisperId
-        });
-        
-        // Close popup
-        window.close();
-      });
-    });
-    
-    // Make whole item clickable to show transcript
-    list.querySelectorAll('.team-whisper-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('btn-jump-to')) {
-          const whisperId = item.dataset.whisperId;
-          const whisper = teamWhispers.find(w => w.id === whisperId);
-          if (whisper && whisper.audioUrl) {
-            playNote(whisper);
-          }
-        }
-      });
-    });
-    
-  } catch (error) {
-    console.error('Error loading team whispers:', error);
-  }
-}
-
-// Helper function to get time ago
-function getTimeAgo(date) {
-  const seconds = Math.floor((new Date() - date) / 1000);
-  
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
-
-// Load demo bubbles for Carnegie article
-async function loadDemoBubblesForCarnegie() {
-  const btn = document.getElementById('loadDemoDataBtn');
-  btn.textContent = '⏳ Loading...';
-  btn.disabled = true;
-  
-  try {
-    const articleUrl = 'https://carnegieendowment.org/china-financial-markets/2023/12/what-will-it-take-for-chinas-gdp-to-grow-at-4-5-percent-over-the-next-decade?lang=en';
-    
-    const demoWhispers = [
-      {
-        id: 'demo_whisper_1',
-        audioUrl: null,
-        transcript: "This is a key point about China's investment share of GDP",
-        color: 'pink',
-        position: { x: 300, y: 500 },
-        timestamp: new Date('2024-01-15T10:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_alex_789',
-        sharedByUsername: 'Alex Kumar',
-        sharedAt: new Date('2024-01-15T10:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'demo_whisper_2',
-        audioUrl: null,
-        transcript: "Wait, this seems confusing. Need to review this section again.",
-        color: 'lavender',
-        position: { x: 320, y: 800 },
-        timestamp: new Date('2024-01-15T11:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_maria_456',
-        sharedByUsername: 'Maria Rodriguez',
-        sharedAt: new Date('2024-01-15T11:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'demo_whisper_3',
-        audioUrl: null,
-        transcript: "Important statistic for our presentation!",
-        color: 'mint',
-        position: { x: 310, y: 650 },
-        timestamp: new Date('2024-01-15T11:15:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_james_321',
-        sharedByUsername: 'James Wilson',
-        sharedAt: new Date('2024-01-15T11:15:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'demo_whisper_4',
-        audioUrl: null,
-        transcript: "This contradicts what we learned in class. Need to ask professor.",
-        color: 'peach',
-        position: { x: 315, y: 900 },
-        timestamp: new Date('2024-01-15T12:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_priya_654',
-        sharedByUsername: 'Priya Patel',
-        sharedAt: new Date('2024-01-15T12:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'demo_whisper_5',
-        audioUrl: null,
-        transcript: "Great explanation of the arithmetic here",
-        color: 'sky',
-        position: { x: 300, y: 400 },
-        timestamp: new Date('2024-01-15T12:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_demo_12345',
-        sharedByUsername: 'Sarah Chen',
-        sharedAt: new Date('2024-01-15T12:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'demo_whisper_6',
-        audioUrl: null,
-        transcript: "This is the most confusing part of the article",
-        color: 'pink',
-        position: { x: 325, y: 850 },
-        timestamp: new Date('2024-01-15T13:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_alex_789',
-        sharedByUsername: 'Alex Kumar',
-        sharedAt: new Date('2024-01-15T13:00:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'demo_whisper_7',
-        audioUrl: null,
-        transcript: "Compare this with the World Bank data",
-        color: 'lavender',
-        position: { x: 305, y: 550 },
-        timestamp: new Date('2024-01-15T13:30:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_maria_456',
-        sharedByUsername: 'Maria Rodriguez',
-        sharedAt: new Date('2024-01-15T13:30:00').toISOString(),
-        teamCode: 'ECON42'
-      },
-      {
-        id: 'demo_whisper_8',
-        audioUrl: null,
-        transcript: "This explains why China is different from other economies",
-        color: 'mint',
-        position: { x: 295, y: 520 },
-        timestamp: new Date('2024-01-15T14:00:00').toISOString(),
-        url: articleUrl,
-        sharedBy: 'user_james_321',
-        sharedByUsername: 'James Wilson',
-        sharedAt: new Date('2024-01-15T14:00:00').toISOString(),
-        teamCode: 'ECON42'
-      }
-    ];
-    
-    // Save to storage
-    await chrome.storage.local.set({ [articleUrl]: demoWhispers });
-    
-    // Update team whispers
-    const { teams } = await chrome.storage.local.get(['teams']);
-    if (teams && teams['ECON42']) {
-      teams['ECON42'].whispers = demoWhispers;
-      await chrome.storage.local.set({ teams });
-    }
-    
-    btn.textContent = '✅ Demo Bubbles Loaded!';
-    setTimeout(() => {
-      btn.textContent = '🎭 Load Demo Bubbles (Carnegie Article)';
-      btn.disabled = false;
-    }, 2000);
-    
-    alert('✅ Demo bubbles loaded!\n\n📍 Go to the Carnegie article and refresh the page to see 8 bubbles!\n\n🔗 https://carnegieendowment.org/china-financial-markets/2023/12/what-will-it-take-for-chinas-gdp-to-grow-at-4-5-percent-over-the-next-decade?lang=en');
-    
-  } catch (error) {
-    console.error('Error loading demo bubbles:', error);
-    btn.textContent = '❌ Error - Try Again';
-    btn.disabled = false;
-  }
-}
-
-// Toggle heatmap
-async function toggleHeatmap() {
-  const checkbox = document.getElementById('heatmapToggle');
-  heatmapEnabled = checkbox.checked;
-  
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    if (!tab || !tab.id) {
-      console.error('No active tab');
-      checkbox.checked = false;
-      return;
-    }
-    
-    // Send message to content script
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'toggleHeatmap',
-      enabled: heatmapEnabled,
-      mode: heatmapMode,
-      teamCode: currentTeamCode
-    }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error toggling heatmap:', chrome.runtime.lastError);
-        checkbox.checked = false;
-      }
-    });
-  } catch (error) {
-    console.error('Error toggling heatmap:', error);
-    checkbox.checked = false;
-  }
-}
-
-// Switch heatmap mode
-async function switchHeatmapMode(mode) {
-  heatmapMode = mode;
-  
-  // Update UI
-  document.querySelectorAll('.heatmap-mode-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
-  });
-  
-  // If heatmap is enabled, refresh it with new mode
-  if (heatmapEnabled) {
-    await toggleHeatmap();
-    document.getElementById('heatmapToggle').checked = true;
-    await toggleHeatmap();
-  }
-}
-
-// Update stats when whisper is created
-async function updateWhisperStats() {
-  await teamService.updateStats('totalWhispers');
-  await loadUserProfile();
-}
-
-// Share whisper with team
-async function shareWhisperWithTeam(whisper) {
-  if (!currentTeamCode) {
-    alert('Please select a team first');
-    return;
-  }
-  
-  try {
-    await teamService.shareWhisperWithTeam(whisper, currentTeamCode);
-    await loadUserProfile();
-    await loadTeams();
-    
-    // Show success notification
-    const notification = document.createElement('div');
-    notification.className = 'share-notification';
-    notification.textContent = '✓ Whisper shared with team!';
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #d8769e 0%, #c589b5 100%);
-      color: white;
-      padding: 15px 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-      z-index: 10000;
-      animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
-  } catch (error) {
-    console.error('Error sharing whisper:', error);
-    alert('Error sharing whisper. Please try again.');
   }
 }
 
